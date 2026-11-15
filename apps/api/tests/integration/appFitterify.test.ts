@@ -27,7 +27,10 @@ const PLATFORM = fileURLToPath(new URL('../../../../', import.meta.url));
 const MOBILE = path.join(PLATFORM, 'apps/mobile');
 const SRC = path.join(MOBILE, 'src');
 const source = (rel: string): string => fs.readFileSync(path.join(SRC, rel), 'utf8');
-const walk = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
+/** macOS keeps a folder's custom icon in a file named "Icon\r" (the Finder's, never part of the app): listings leave it out. */
+const FOLDER_ICON = 'Icon\r';
+const listDir = (dir: string): string[] => fs.readdirSync(dir).filter((n) => n !== FOLDER_ICON);
+const walk = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.name !== FOLDER_ICON).flatMap((e) => e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
 const rel = (f: string) => path.relative(SRC, f).split(path.sep).join('/');
 const codeFiles = (dir: string) => walk(dir).filter((f) => /\.tsx?$/.test(f));
 /** Code without its comments (a comment may describe what is not done). */
@@ -58,7 +61,7 @@ test('tabs: the nine tabs in order, icon-only with their names as accessibility 
   assert.deepEqual(declared, TAB_ORDER.map((t) => [...t]));
   assert.ok(tabs.includes("export const HIDDEN_TABS = [\n  { name: 'plan', href: '/(tabs)/plan' },\n  { name: 'me', href: '/(tabs)/me' },\n] as const;"));
   // every tab is a route file of its own, and the group holds nothing else but the two redirects and the layout
-  const files = fs.readdirSync(path.join(SRC, 'app/(tabs)')).sort();
+  const files = listDir(path.join(SRC, 'app/(tabs)')).sort();
   assert.deepEqual(files, ['_layout.tsx', ...TAB_ORDER.map((t) => `${t[0]}.tsx`), 'me.tsx', 'plan.tsx'].sort());
   // the layout draws exactly that list as triggers of the floating pill, the hidden two outside the bar
   const layout = source('app/(tabs)/_layout.tsx');
@@ -98,7 +101,7 @@ test('redirects: every old address lands on its new place (BUILD §7.1), so old 
 
 test('fonts: exactly nine TTF files (Bebas Neue, Montserrat, JetBrains Mono), each family with its SIL Open Font License text, all loaded', () => {
   const dir = path.join(MOBILE, 'assets/fonts');
-  const names = fs.readdirSync(dir).sort();
+  const names = listDir(dir).sort();
   const ttf = names.filter((n) => n.endsWith('.ttf'));
   assert.deepEqual(ttf, ['BebasNeue-Regular.ttf', 'JetBrainsMono-Bold.ttf', 'JetBrainsMono-Medium.ttf', 'JetBrainsMono-Regular.ttf', 'Montserrat-Bold.ttf', 'Montserrat-Light.ttf', 'Montserrat-Medium.ttf', 'Montserrat-Regular.ttf', 'Montserrat-SemiBold.ttf']);
   assert.deepEqual(names.filter((n) => !n.endsWith('.ttf')), ['OFL-BebasNeue.txt', 'OFL-JetBrainsMono.txt', 'OFL-Montserrat.txt']);

@@ -29,8 +29,8 @@ import { MODULES } from '../modules/index.js';
 import type { ApiModule } from '../modules/types.js';
 import { assertStorageReady } from '../domain/files.js';
 import { madeByDef } from './route.js';
-import { OPEN_PREVIEW_RESTRICTED, endOpenPreviewSessions } from '../auth/openPreview.js';
-import { compressPayload, portalCacheControl, siteCacheControl, CACHE_DAY, CACHE_REVALIDATE } from './static-delivery.js';
+import { OPEN_PREVIEW_RESTRICTED, OPEN_PREVIEW_WORKSPACES, endOpenPreviewSessions } from '../auth/openPreview.js';
+import { apiCacheControl, compressPayload, portalCacheControl, siteCacheControl, CACHE_DAY, CACHE_REVALIDATE } from './static-delivery.js';
 
 export const API_VERSION = '0.1.0';
 export const SESSION_COOKIE = 'bp_session';
@@ -85,6 +85,14 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
       reply.header('referrer-policy', 'strict-origin-when-cross-origin');
     }
     reply.header('x-bioptime-mode', config.BIOPTIME_MODE);
+    return payload;
+  });
+  // API answers are not stored by browsers, app HTTP caches or proxies: Cache-Control: no-store (and Pragma: no-cache)
+  // unless the route chose its own policy (rules in static-delivery.ts apiCacheControl). Decided on the raw path as well
+  // as the routed one, so an unrouted /api answer (404, a refused preflight) is covered too
+  app.addHook('onSend', async (req, reply, payload) => {
+    const raw = req.url.split(/[?#]/, 1)[0] ?? '';
+    if (isApi(req) || raw === '/api' || raw.startsWith('/api/')) apiCacheControl(req, reply);
     return payload;
   });
   // text responses travel compressed (node's zlib; rules and exclusions in static-delivery.ts)
@@ -164,8 +172,10 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     }
     api.setNotFoundHandler((req, reply) => reply.code(404).send({ error: { code: 'NOT_FOUND', message: `No route for ${req.method} ${req.url}` } }));
   }, { prefix: '/api' });
-  // with the open preview off, the sessions it opened (if it was ever on with this database) are signed out
+  // with the open preview off, the sessions it opened (if it was ever on with this database) are signed out; with it on,
+  // those it opened for a workspace OPEN_PREVIEW_WORKSPACES no longer lists
   if (!config.openPreview) endOpenPreviewSessions({ db, config, actor: null, now: () => new Date().toISOString() });
+  else endOpenPreviewSessions({ db, config, actor: null, now: () => new Date().toISOString() }, OPEN_PREVIEW_WORKSPACES.filter((w) => !config.openPreviewWorkspaces.includes(w)));
   // the open preview switches routes off by their declared method and path (api/auth/openPreview.ts): one renamed without
   // its entry would silently stop being refused, so the server does not start with an entry that names no route
   if (config.openPreview) {

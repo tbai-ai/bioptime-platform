@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { Navigate, useLocation } from 'react-router-dom';
 import { api, ApiRequestError, sessionUserId, setAfterRefusal, setBeforeRequest, setMfaEnrolmentHandler, setUnauthorisedHandler } from './api';
 import { workspaceOf, type Workspace } from './nav';
+import { PREVIEW_WORKSPACE, PREVIEW_WORKSPACES, previewOpens, previewWorkspacesFrom, type PreviewWorkspace } from './openPreview';
 import { AlertIcon, Button } from '../ui';
 
 export type Role = 'member' | 'coach' | 'admin' | 'owner';
@@ -18,19 +19,23 @@ type Auth = {
   isPrivileged: boolean; isCoach: boolean; isMember: boolean; can: (permission: string) => boolean;
   /** Open preview: sign-in is switched off for now on this server (GET /public/config openPreview; demo mode only). */
   openPreview: boolean;
+  /** Open preview: whether this workspace opens without signing in (GET /public/config openPreviewWorkspaces lists it, or
+      the server sends no list); a workspace it does not open signs in as usual. False while the preview is off. */
+  previewOpens: (ws: Workspace) => boolean;
   /** Open preview only: opens the workspace's fixed preview account (POST /auth/open-preview) and keeps its session. */
   openWorkspace: (ws: Workspace, kind?: OpenKind) => Promise<User>;
 };
 
-const Ctx = createContext<Auth>({ user: null, permissions: [], loading: true, sessionExpired: false, mfaEnrolmentRequired: false, refresh: async () => {}, signOut: async () => {}, setSession: () => {}, isPrivileged: false, isCoach: false, isMember: false, can: () => false, openPreview: false, openWorkspace: async () => { throw new Error('No session provider'); } });
+const Ctx = createContext<Auth>({ user: null, permissions: [], loading: true, sessionExpired: false, mfaEnrolmentRequired: false, refresh: async () => {}, signOut: async () => {}, setSession: () => {}, isPrivileged: false, isCoach: false, isMember: false, can: () => false, openPreview: false, previewOpens: () => false, openWorkspace: async () => { throw new Error('No session provider'); } });
 
 /* Open preview (the owner's decision of 30 October 2026: no sign-in anywhere in the demo for now). The server turns it on
    only in demo mode with OPEN_PREVIEW=1 and then says openPreview: true in GET /public/config; otherwise the flag is
    absent and every page below behaves exactly as before. While it is on, each workspace opens its fixed preview account
    through POST /auth/open-preview, a route the server offers only in that mode: no password, code or secret is in this
    code, the server decides who the account is. The sign-in pages and the workspace guards open it on their own; sign-out
-   leads to the website's home page, as the sign-in page would only open the workspace again. */
-const PREVIEW_WORKSPACE: Record<Workspace, 'member' | 'coach' | 'admin'> = { client: 'member', coach: 'coach', admin: 'admin' };
+   leads to the website's home page, as the sign-in page would only open the workspace again. A server may open only
+   some workspaces (GET /public/config openPreviewWorkspaces; lib/openPreview.ts): the others keep their sign-in form,
+   their guard and their sign-out exactly as without the preview. */
 const ROLE_WORKSPACE: Record<Role, Workspace> = { member: 'client', coach: 'coach', admin: 'admin', owner: 'admin' };
 export const WORKSPACE_TITLE: Record<Workspace, string> = { client: 'member portal', coach: 'coach workspace', admin: 'administrative portal' };
 type Opened = { user: User; permissions?: string[] };
@@ -105,10 +110,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [mfaEnrolmentRequired, setMfaEnrolmentRequired] = useState(false);
   const [openPreview, setOpenPreview] = useState(false);
+  const [previewWorkspaces, setPreviewWorkspaces] = useState<readonly PreviewWorkspace[]>(PREVIEW_WORKSPACES);
   const [configChecked, setConfigChecked] = useState(false);
   /** Open preview: this tab could not take its account back from another tab by itself (see "One session for every tab"). */
   const [paused, setPaused] = useState<{ ws: Workspace; reason: string } | null>(null);
   const openPreviewRef = useRef(false);
+  const previewWorkspacesRef = useRef<readonly PreviewWorkspace[]>(PREVIEW_WORKSPACES);
+  /** whether the open preview opens this workspace (the refs: also right inside callbacks made before the settings came) */
+  const opensRef = useCallback((ws: Workspace) => previewOpens(openPreviewRef.current, previewWorkspacesRef.current, ws), []);
   const had = useRef(false);
   const mfaRefused = useRef(false);
   const userRef = useRef<User | null>(null);
@@ -141,11 +150,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refresh();
     // asked alongside the session: the pages wait for both, so an open preview never shows a sign-in form first
     let live = true;
-    api.get<{ openPreview?: boolean }>('/public/config')
+    api.get<{ openPreview?: boolean; openPreviewWorkspaces?: unknown }>('/public/config')
       .then((c) => {
         if (!live) return;
         openPreviewRef.current = c?.openPreview === true;
+        previewWorkspacesRef.current = previewWorkspacesFrom(c);
         if (openPreviewRef.current && serverUser.current) writeMark(serverUser.current);
+        setPreviewWorkspaces(previewWorkspacesRef.current);
         setOpenPreview(openPreviewRef.current);
       }, () => { /* unknown: sign-in as usual */ })
       .finally(() => { if (live) setConfigChecked(true); });
@@ -156,10 +167,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // open preview: the sign-in page would open the workspace again at once, so sign-out leaves for the website's home page
     // (a full page load, it is not part of the portal). The promise does not settle: the page is being replaced, and
     // neither the workspace guard (which would open the workspace again) nor the caller's next step should run. The
-    // sessions ended here were ended on purpose, so they do not count as openings that failed to stay open.
-    if (openPreviewRef.current) { writeMark(null); clearAttempts(); window.location.assign('/'); return new Promise<void>(() => {}); }
+    // sessions ended here were ended on purpose, so they do not count as openings that failed to stay open. A workspace
+    // the preview does not open signs out as usual (its sign-in page shows the form), noting it for the other tabs.
+    const here = workspaceOf(window.location.pathname);
+    if (openPreviewRef.current && (!here || opensRef(here))) { writeMark(null); clearAttempts(); window.location.assign('/'); return new Promise<void>(() => {}); }
+    if (openPreviewRef.current) writeMark(null);
     had.current = false; setSessionExpired(false); setMfaEnrolmentRequired(false); setUser(null); setPermissions([]);
-  }, []);
+  }, [opensRef]);
   const setSession = useCallback((u: User | null, p: string[] = []) => {
     setUser(u); setPermissions(p); had.current = !!u; setSessionExpired(false); if (u) { mfaRefused.current = false; setMfaEnrolmentRequired(false); }
     userRef.current = u;
@@ -174,6 +188,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pausedRef = useRef(false);
   /** opens this tab's workspace again; on failure the tab is paused with the reason (the bar below) and the error goes on */
   const takeBack = useCallback(async (ws: Workspace, kind: OpenKind) => {
+    if (!opensRef(ws)) {
+      // a workspace the preview does not open was signed in with a password: another tab's account replaced that session
+      // in this browser and nothing can open it again from here, so this tab is signed out (its sign-in page says so)
+      // and the request is not sent as the other account
+      const ended = new ApiRequestError(401, 'SESSION_REPLACED', `Another tab of this browser opened a different workspace, which signed this tab out of the ${WORKSPACE_TITLE[ws]}. Sign in again to continue.`);
+      had.current = false; userRef.current = null;
+      setSessionExpired(true); setUser(null); setPermissions([]);
+      const held = waiting.current; waiting.current = []; held.forEach((x) => x.drop(ended)); // never sent
+      throw ended;
+    }
     try {
       await openWorkspace(ws, kind);
       pausedRef.current = false; setPaused(null);
@@ -183,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setPaused({ ws, reason: `Another tab of this browser opened a different workspace, and this tab could not open the ${WORKSPACE_TITLE[ws]} again by itself. ${why}` });
       throw e;
     }
-  }, [openWorkspace]);
+  }, [openWorkspace, opensRef]);
   const runSync = useCallback((fn: () => Promise<void>): Promise<void> => {
     const p: Promise<void> = fn().finally(() => { if (syncing.current === p) syncing.current = null; });
     syncing.current = p;
@@ -281,8 +305,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user, permissions, loading: !ready, sessionExpired, mfaEnrolmentRequired, refresh, signOut, setSession,
     isPrivileged: user?.role === 'admin' || user?.role === 'owner', isCoach: user?.role === 'coach', isMember: user?.role === 'member',
     can: (p) => user?.role === 'owner' || permissions.includes(p),
-    openPreview, openWorkspace,
-  }), [user, permissions, ready, sessionExpired, mfaEnrolmentRequired, refresh, signOut, setSession, openPreview, openWorkspace]);
+    openPreview, previewOpens: (ws: Workspace) => previewOpens(openPreview, previewWorkspaces, ws), openWorkspace,
+  }), [user, permissions, ready, sessionExpired, mfaEnrolmentRequired, refresh, signOut, setSession, openPreview, previewWorkspaces, openWorkspace]);
   return <Ctx.Provider value={value}>
     {children}
     {paused && <div data-open-preview="paused" style={{ position: 'fixed', left: '50%', bottom: 20, transform: 'translateX(-50%)', width: 'min(720px, calc(100% - 32px))', zIndex: 'var(--bp-z-toast)', background: 'var(--bp-color-surface-raised)', borderRadius: 'var(--bp-radius-md)', boxShadow: 'var(--bp-shadow-raised)' }}>
@@ -302,11 +326,15 @@ export const WORKSPACE_LOGIN: Record<Workspace, string> = { client: '/login/clie
 /** Route guard for a workspace: no session → that workspace's sign-in page; the wrong role → a clear refusal, never a silent redirect.
     Open preview: no session, or another workspace's account → the workspace's preview account is opened in place. */
 export function RequireRole({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
-  const { user, loading, sessionExpired, mfaEnrolmentRequired, openPreview } = useAuth();
+  const { user, loading, sessionExpired, mfaEnrolmentRequired, openPreview, previewOpens: opens } = useAuth();
   const loc = useLocation();
   const ws = workspaceOf(loc.pathname) ?? 'client';
   if (loading) return <div className="content"><p className="muted">Checking your session…</p></div>;
-  if (openPreview && (!user || !roles.includes(user.role))) return <OpenWorkspace ws={ws} roles={roles} />;
+  // only a workspace the open preview opens (a server may open some only): the others guard as without the preview,
+  // except that another workspace's preview account (the browser holds one session for every tab) leads to this
+  // workspace's sign-in form rather than to a refusal
+  if (opens(ws) && (!user || !roles.includes(user.role))) return <OpenWorkspace ws={ws} roles={roles} />;
+  if (openPreview && user && !roles.includes(user.role)) return <Navigate to={WORKSPACE_LOGIN[ws]} state={{ from: loc.pathname + loc.search }} replace />;
   // a session refused for missing two-factor authentication goes to the admin sign-in, which explains it and sets it up;
   // only the admin workspace sends it there, the coach and member guards go to their own sign-in pages as usual
   if (!user && mfaEnrolmentRequired && ws === 'admin') return <Navigate to="/login/admin?mfa=required" state={{ from: loc.pathname + loc.search }} replace />;

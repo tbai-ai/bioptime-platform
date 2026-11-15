@@ -98,7 +98,24 @@ const schema = z.object({
   // The open preview (owner decision, 30 October 2026: "remove the login for now"): '1' opens every workspace without
   // signing in (POST /auth/open-preview; api/auth/openPreview.ts), in demo mode only. Unset (or empty, or '0') is off.
   OPEN_PREVIEW: z.string().trim().default(''),
+  // Which workspaces the open preview opens (owner decision, 15 November 2026, for the shared link: "turn off the admin
+  // open-preview"; testers keep "Continue without signing in" as client and coach): a comma-separated list of member,
+  // coach and admin, for example member,coach. Unset (or empty) = all three, as before. POST /auth/open-preview refuses
+  // any other workspace with 403 OPEN_PREVIEW_WORKSPACE_OFF and never opens an administrator or owner account unless
+  // admin is listed; GET /public/config lists the open ones (openPreviewWorkspaces). Read only while OPEN_PREVIEW=1.
+  OPEN_PREVIEW_WORKSPACES: z.string().trim().default(''),
+  // The demo helpers of staff accounts (administrators and owners, the roles that open the admin workspace; owner decision,
+  // 15 November 2026). '0' withholds, in demo mode, every helper that hands out a credential, code or token of such an
+  // account: the reset token of POST /auth/password/forgot and the verification token of POST /auth/resend-verification
+  // (demoToken), the current authenticator code (GET /auth/demo/totp, then 403 DEMO_STAFF_HELPER_OFF) and the sign-in's
+  // pointer to it (previewCodePath). Members and coaches keep theirs. Unset (or empty, or '1') = on, as before. Outside
+  // demo mode none of these helpers exists, whatever this says.
+  DEMO_STAFF_HELPERS: z.string().trim().default(''),
 });
+
+/** The workspaces the open preview knows (api/auth/openPreview.ts OPEN_PREVIEW_ACCOUNTS has one account for each). */
+export const OPEN_PREVIEW_WORKSPACE_NAMES = ['member', 'coach', 'admin'] as const;
+export type OpenPreviewWorkspaceName = (typeof OPEN_PREVIEW_WORKSPACE_NAMES)[number];
 
 export type Config = z.infer<typeof schema> & {
   isDemo: boolean;
@@ -116,6 +133,12 @@ export type Config = z.infer<typeof schema> & {
   /** The open preview is effective: BIOPTIME_MODE=demo and OPEN_PREVIEW=1 (any other mode with OPEN_PREVIEW=1 refuses
    *  to start). Every workspace opens without signing in; api/auth/openPreview.ts. */
   openPreview: boolean;
+  /** The workspaces POST /auth/open-preview opens: OPEN_PREVIEW_WORKSPACES (all three when it is unset) while the open
+   *  preview is effective, none otherwise. */
+  openPreviewWorkspaces: OpenPreviewWorkspaceName[];
+  /** The demo helpers that hand out a credential, code or token serve administrator and owner accounts too: demo mode with
+   *  DEMO_STAFF_HELPERS unset (or 1). False outside demo mode, where those helpers do not exist. */
+  demoStaffHelpers: boolean;
   /** Google OAuth client IDs by platform (only those set). */
   googleClientIds: { web?: string; ios?: string; android?: string };
   /** Every audience an Apple identity token may name: the app's bundle IDs and the Services ID (web and Android). */
@@ -137,6 +160,14 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof schema
   const openPreview = c.OPEN_PREVIEW === '1';
   if (openPreview && c.BIOPTIME_MODE !== 'demo') throw new Error(`OPEN_PREVIEW=1 opens every workspace without signing in and is for demo mode only, but BIOPTIME_MODE=${c.BIOPTIME_MODE}: the server will not start. Unset OPEN_PREVIEW (or run the demo with BIOPTIME_MODE=demo).`);
   if (openPreview && c.LABSTACK_MODE === 'live') throw new Error('OPEN_PREVIEW=1 refuses LABSTACK_MODE=live: anyone with the link could book real laboratory visits. Use the stand-in laboratory (LABSTACK_MODE=standin) or unset OPEN_PREVIEW.');
+  // the workspaces it opens: exact names only (an unknown one is a typo that could leave a workspace open), at least one
+  const listed = [...new Set(c.OPEN_PREVIEW_WORKSPACES.split(',').map((s) => s.trim()).filter(Boolean))];
+  const unknownWorkspaces = listed.filter((w) => !(OPEN_PREVIEW_WORKSPACE_NAMES as readonly string[]).includes(w));
+  if (unknownWorkspaces.length) throw new Error(`OPEN_PREVIEW_WORKSPACES=${c.OPEN_PREVIEW_WORKSPACES} is not understood (${unknownWorkspaces.join(', ')}): list the workspaces the open preview may open, from member, coach and admin (for example OPEN_PREVIEW_WORKSPACES=member,coach), or leave it unset for all three`);
+  if (c.OPEN_PREVIEW_WORKSPACES && !listed.length) throw new Error(`OPEN_PREVIEW_WORKSPACES=${c.OPEN_PREVIEW_WORKSPACES} names no workspace: list member, coach or admin, or unset OPEN_PREVIEW to open none`);
+  const openPreviewWorkspaces: OpenPreviewWorkspaceName[] = !openPreview ? [] : listed.length ? OPEN_PREVIEW_WORKSPACE_NAMES.filter((w) => listed.includes(w)) : [...OPEN_PREVIEW_WORKSPACE_NAMES];
+  if (!['', '0', '1'].includes(c.DEMO_STAFF_HELPERS)) throw new Error(`DEMO_STAFF_HELPERS=${c.DEMO_STAFF_HELPERS} is not understood: set DEMO_STAFF_HELPERS=0 to withhold the demo helpers (reset and verification tokens, authenticator codes) of administrator and owner accounts, or leave it unset`);
+  const demoStaffHelpers = c.BIOPTIME_MODE === 'demo' && c.DEMO_STAFF_HELPERS !== '0';
   // demo mode echoes activation and reset links in responses so the demo can be driven without email; that is only ever a
   // loopback convenience, so a server reachable from other machines must say which mode it runs in
   const loopback = ['127.0.0.1', 'localhost', '::1'].includes(c.HOST);
@@ -168,6 +199,8 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof schema
     dashboardDir: resolve(c.DASHBOARD_DIR),
     jobsEnabled: c.JOBS_ENABLED === 'true',
     openPreview,
+    openPreviewWorkspaces,
+    demoStaffHelpers,
     googleClientIds: { ...(c.GOOGLE_SIGN_IN_WEB_CLIENT_ID ? { web: c.GOOGLE_SIGN_IN_WEB_CLIENT_ID } : {}), ...(c.GOOGLE_SIGN_IN_IOS_CLIENT_ID ? { ios: c.GOOGLE_SIGN_IN_IOS_CLIENT_ID } : {}), ...(c.GOOGLE_SIGN_IN_ANDROID_CLIENT_ID ? { android: c.GOOGLE_SIGN_IN_ANDROID_CLIENT_ID } : {}) },
     appleAudiences: [...new Set([...c.APPLE_SIGN_IN_BUNDLE_IDS.split(',').map((s) => s.trim()).filter(Boolean), ...(c.APPLE_SIGN_IN_SERVICES_ID ? [c.APPLE_SIGN_IN_SERVICES_ID] : [])])],
   };

@@ -22,6 +22,9 @@ const SRC = path.join(PLATFORM, 'apps/mobile/src');
 const load = (spec: string): Promise<any> => import(spec);
 const mobile = (rel: string): Promise<any> => load(pathToFileURL(path.join(SRC, rel)).href);
 const source = (rel: string): string => fs.readFileSync(path.join(SRC, rel), 'utf8');
+/** macOS keeps a folder's custom icon in a file named "Icon\r" (the Finder's, never part of the app): listings leave it out. */
+const FOLDER_ICON = 'Icon\r';
+const listDir = (dir: string): string[] => fs.readdirSync(dir).filter((n) => n !== FOLDER_ICON);
 const files = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? files(path.join(dir, e.name)) : /\.tsx?$/.test(e.name) ? [path.join(dir, e.name)] : []);
 
 /** The copy a viewer can see in a source file: string literals and JSX text, with comments removed. A heuristic, but
@@ -194,13 +197,13 @@ test('3D layer wiring: the mark is the unchanged image in front, copies of the s
   assert.ok(auth.includes('<MarkHandoff target="signin"><MarkPaths width={40} /></MarkHandoff>'));
   assert.doesNotMatch(source('fx/brand/MarkPaths.tsx'), /require\(|<Image\b/, 'the mark is drawn, not a new image file');
   // assets/images: still exactly the five PNGs; the native splash shows the mark on black, one image of its own (assets/splash/mark.png)
-  assert.deepEqual(fs.readdirSync(path.join(PLATFORM, 'apps/mobile/assets/images')).sort(), PNG_IMAGES);
-  assert.deepEqual(fs.readdirSync(path.join(PLATFORM, 'apps/mobile/assets/splash')).sort(), ['mark.png']);
+  assert.deepEqual(listDir(path.join(PLATFORM, 'apps/mobile/assets/images')).sort(), PNG_IMAGES);
+  assert.deepEqual(listDir(path.join(PLATFORM, 'apps/mobile/assets/splash')).sort(), ['mark.png']);
 });
 
 test('photos: assets/photos holds only graded WebP photos (three sizes each), every one credited and in the manifest, 9 MB at most, no demo or sample name', () => {
   const dir = path.join(PLATFORM, 'apps/mobile/assets/photos');
-  const names = fs.readdirSync(dir).sort();
+  const names = listDir(dir).sort();
   const webp = names.filter((n) => n.endsWith('.webp'));
   assert.deepEqual(names.filter((n) => !n.endsWith('.webp')), ['CREDITS.json'], 'nothing else but the credits');
   assert.ok(webp.length > 0 && webp.every((n) => /^ph-[a-z0-9-]+-(64|1080|1600)\.webp$/.test(n)), 'ph-<slot>-<width>.webp');

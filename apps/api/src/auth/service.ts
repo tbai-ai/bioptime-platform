@@ -65,6 +65,8 @@ export function registerMember(ctx: Ctx, input: { email: string; password: strin
     ctx.db.insert('notification_preferences', { user_id: id, updated_at: now });
     const verificationToken = issueToken(ctx, id, 'email_verify', addDays(now, 3));
     emit(ctx, 'MemberRegistered', { type: 'user', id }, { email: input.email });
+    // the link (with its token) is the email's: kept on the notification for the email channel, never returned by the
+    // in-app inbox (GET /notifications strips it: domain/notifications.ts inboxData), as for every link below
     notify(ctx, { userId: id, category: 'verification', title: 'Verify your email', body: 'Open the link we sent to confirm your email and continue to onboarding.', data: { verifyUrl: `${ctx.config.PUBLIC_ORIGIN}/verify?token=${verificationToken}` }, channels: ['email'] });
     audit({ ...ctx, actor: { id, role: 'member', email: input.email, name: input.name } }, 'member.register', { type: 'user', id }, null);
     return { user: getUser(ctx, id)!, verificationToken };

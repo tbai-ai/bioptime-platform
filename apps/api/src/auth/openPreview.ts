@@ -3,7 +3,9 @@
    OPEN_PREVIEW=1 refuses to start, api/config.ts), POST /auth/open-preview opens the fixed account of a workspace
    without a password or an authenticator code, server-side: no credential, code or secret is ever handed to a client.
    Turning it off is one environment change (unset OPEN_PREVIEW) and a restart; with it unset none of this is
-   registered.
+   registered. OPEN_PREVIEW_WORKSPACES narrows it to some workspaces (the shared link: member,coach, owner decision of
+   15 November 2026): the others answer 403 OPEN_PREVIEW_WORKSPACE_OFF and sign in with a password as usual, and a start
+   with a workspace no longer listed signs out the sessions the preview had opened there.
 
    While it is on, anyone with the link acts as these three accounts, so the administrative actions that could make
    this server contact arbitrary hosts, read or write outside its data folders, lock the owner out of the demo, or leave
@@ -12,6 +14,7 @@
    route is in docs/DECISIONS.md, "Open preview"). Everything else in the admin dashboard works. */
 import type { FastifyRequest } from 'fastify';
 import type { Ctx } from '../context.js';
+import type { OpenPreviewWorkspaceName } from '../config.js';
 import type { Role } from '@bioptime/domain';
 import { AppError } from '../lib/errors.js';
 import { sha256 } from '../lib/crypto.js';
@@ -25,9 +28,17 @@ export const OPEN_PREVIEW_ACCOUNTS = {
 } as const;
 export type OpenPreviewWorkspace = keyof typeof OPEN_PREVIEW_ACCOUNTS;
 export const OPEN_PREVIEW_WORKSPACES = Object.keys(OPEN_PREVIEW_ACCOUNTS) as [OpenPreviewWorkspace, ...OpenPreviewWorkspace[]];
+// the configuration (OPEN_PREVIEW_WORKSPACES, api/config.ts) names exactly these workspaces: a compile error otherwise
+const SAME_WORKSPACES: [OpenPreviewWorkspace] extends [OpenPreviewWorkspaceName] ? ([OpenPreviewWorkspaceName] extends [OpenPreviewWorkspace] ? true : never) : never = true;
+void SAME_WORKSPACES;
 /** The roles a workspace's account must hold (the same as POST /auth/login's workspaces). */
 export const OPEN_PREVIEW_ROLES: Record<OpenPreviewWorkspace, readonly Role[]> = { member: ['member'], coach: ['coach'], admin: ['admin', 'owner'] };
 const WORKSPACE_WORDS: Record<OpenPreviewWorkspace, string> = { member: 'client', coach: 'coach', admin: 'admin' };
+
+/** The refusal for a workspace this server does not open without signing in (OPEN_PREVIEW_WORKSPACES, api/config.ts). */
+export function openPreviewWorkspaceOff(workspace: OpenPreviewWorkspace, open: readonly OpenPreviewWorkspace[]): AppError {
+  return new AppError('OPEN_PREVIEW_WORKSPACE_OFF', 403, `The ${WORKSPACE_WORDS[workspace]} workspace does not open without signing in on this server. Sign in with your password instead.`, { workspace, workspaces: [...open] });
+}
 
 const PREVIEW_EMAILS: ReadonlySet<string> = new Set(Object.values(OPEN_PREVIEW_ACCOUNTS));
 
@@ -54,11 +65,15 @@ export function openPreviewProblem(workspace: OpenPreviewWorkspace, user: { role
 /** Turning the preview off ends what it opened: on a start with the preview off, every session it opened that is still
  *  live (its id is in an auth.open_preview audit row) is revoked, so a visitor's 30-day client or coach session does
  *  not outlive the switch. Sessions opened with a password are untouched. Returns how many were revoked (audited once,
- *  as auth.open_preview_ended, when there were any). */
-export function endOpenPreviewSessions(ctx: Ctx): number {
+ *  as auth.open_preview_ended, when there were any). With `workspaces`, only the sessions it opened for those (the
+ *  workspace is in the same audit row): a start with the preview on but a workspace no longer listed in
+ *  OPEN_PREVIEW_WORKSPACES signs out what it opened there, so an administrator session opened before does not stay. */
+export function endOpenPreviewSessions(ctx: Ctx, workspaces?: readonly OpenPreviewWorkspace[]): number {
+  if (workspaces && !workspaces.length) return 0;
   const now = ctx.now();
-  const n = ctx.db.run("UPDATE sessions SET revoked_at = ? WHERE revoked_at IS NULL AND expires_at > ? AND id IN (SELECT json_extract(data, '$.sessionId') FROM audit_events WHERE action = 'auth.open_preview')", [now, now]).changes;
-  if (n) audit(ctx, 'auth.open_preview_ended', null, 'the open preview is off: the sessions it opened were signed out', { sessionsRevoked: n });
+  const only = workspaces ? ` AND json_extract(data, '$.workspace') IN (${workspaces.map(() => '?').join(', ')})` : '';
+  const n = ctx.db.run(`UPDATE sessions SET revoked_at = ? WHERE revoked_at IS NULL AND expires_at > ? AND id IN (SELECT json_extract(data, '$.sessionId') FROM audit_events WHERE action = 'auth.open_preview'${only})`, [now, now, ...(workspaces ?? [])]).changes;
+  if (n) audit(ctx, 'auth.open_preview_ended', null, workspaces ? `the open preview no longer opens ${workspaces.join(', ')}: the sessions it opened there were signed out` : 'the open preview is off: the sessions it opened were signed out', { sessionsRevoked: n, ...(workspaces ? { workspaces: [...workspaces] } : {}) });
   return n;
 }
 

@@ -7,11 +7,15 @@
    six-digit code) and the confirmation signs them in.
    Open preview (sign-in switched off for now, demo mode only; lib/auth.tsx): the page shows no form; it opens the
    workspace's preview account at once ("Opening…") and goes on into the workspace. If that fails, or the workspace guard
-   already failed to open it (state.openError), the usual form is shown with the reason. */
+   already failed to open it (state.openError), the usual form is shown with the reason. A workspace the server's open
+   preview does not open (GET /public/config openPreviewWorkspaces; the shared link opens member and coach only) shows
+   its form as always. "Fill in the preview code" (demo mode) is offered only where the server names the helper in its
+   answer (previewCodePath) and does not say demoStaffHelpers: false. */
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiRequestError } from '../../lib/api';
 import { ROLE_HOME, useAuth, WORKSPACE_TITLE, type User } from '../../lib/auth';
+import { staffHelpersFrom } from '../../lib/openPreview';
 import { Alert, Button, Field, Input, useApi } from '../../ui';
 import { BrandMark3D, BrandScene } from '../../components/BrandMark3D';
 
@@ -49,7 +53,7 @@ function safeNext(v: string | null): string | null { return v && /^\/(?![\/\\])[
 /** The page: the sign-in form, or, in open preview, the workspace opening on its own (the form only if that fails). */
 function LoginPage({ variant }: { variant: Variant }) {
   const c = COPY[variant];
-  const { user, loading, openPreview, openWorkspace } = useAuth();
+  const { user, loading, previewOpens, openWorkspace } = useAuth();
   const nav = useNavigate();
   const loc = useLocation() as { state?: { from?: string; openError?: string } };
   const [params] = useSearchParams();
@@ -66,7 +70,8 @@ function LoginPage({ variant }: { variant: Variant }) {
   // the guard of a workspace already tried and failed: the form, with its reason, and no second try from here
   const [openErr, setOpenErr] = useState<string>(() => loc.state?.openError ?? '');
   const tried = useRef(false);
-  const opening = openPreview && !openErr && !signedInHere;
+  const opens = previewOpens(variant); // this workspace opens without signing in (the open preview is on and opens it)
+  const opening = opens && !openErr && !signedInHere;
   useEffect(() => {
     if (loading || !opening || tried.current) return;
     tried.current = true;
@@ -79,7 +84,7 @@ function LoginPage({ variant }: { variant: Variant }) {
   }, [loading, opening]); // eslint-disable-line react-hooks/exhaustive-deps
   // the page waits for the session and the server's settings (both asked at once) so that an open preview never shows
   // the form first; then the form as always, or the opening state
-  const showOpening = !loading && (opening || (openPreview && !openErr && signedInHere));
+  const showOpening = !loading && (opening || (opens && !openErr && signedInHere));
   return <AuthFrame variant={variant} opening={showOpening}>
     {loading ? <div className="form" aria-busy="true"><p className="muted small" role="status">Checking your session…</p></div>
       : showOpening ? <div className="form" aria-busy="true"><p className="muted" role="status">Opening the {WORKSPACE_TITLE[variant]}…</p></div>
@@ -97,10 +102,14 @@ function LoginForm({ variant, initialError = '' }: { variant: Variant; initialEr
   const [mfa, setMfa] = useState('');
   const [needMfa, setNeedMfa] = useState(false);
   const [enrol, setEnrol] = useState<{ token: string; minutes: number; preview: boolean } | null>(null);
+  // the "code needed" answer named the preview helper (demo mode, and not withheld for this account by the server)
+  const [mfaPreview, setMfaPreview] = useState(false);
   const [err, setErr] = useState<React.ReactNode>(initialError);
   const [busy, setBusy] = useState(false);
   const config = useApi(() => api.get('/public/config'), []);
   const demo = !!(config.data as any)?.demo;
+  // the server's preview helpers for administrator and owner accounts (absent = on, as before)
+  const staffHelpers = staffHelpersFrom(config.data);
   // members may also sign in with a one-time code sent by SMS once the server offers it (GET /public/config features)
   const phoneSignIn = variant === 'client' && ((config.data as any)?.features ?? []).includes('phone_sign_in');
   // demo mode only: the seeded admin and owner share a synthetic authenticator, so the page can fill its current code
@@ -120,7 +129,7 @@ function LoginForm({ variant, initialError = '' }: { variant: Variant; initialEr
       const r = await api.post<{ user: User; permissions?: string[] }>('/auth/login', { ...who, password, workspace: c.workspace, ...(needMfa && mfa ? { mfaCode: mfa.trim() } : {}) });
       setSession(r.user, r.permissions ?? []);
     } catch (ex) {
-      if (ex instanceof ApiRequestError && ex.code === 'MFA_REQUIRED') { setNeedMfa(true); setErr(''); }
+      if (ex instanceof ApiRequestError && ex.code === 'MFA_REQUIRED') { setMfaPreview(typeof (ex.details as any)?.previewCodePath === 'string'); setNeedMfa(true); setErr(''); }
       else if (ex instanceof ApiRequestError && ex.code === 'MFA_ENROLMENT_REQUIRED' && typeof (ex.details as any)?.enrolmentToken === 'string') { setEnrol({ token: (ex.details as any).enrolmentToken, minutes: Number((ex.details as any).expiresInMinutes) || 15, preview: !!(ex.details as any).previewCodePath }); setPassword(''); setErr(''); }
       else if (ex instanceof ApiRequestError && ex.code === 'WRONG_WORKSPACE') setErr(<>That account does not sign in here. {variant === 'client' ? <>Coaches use the <a href="/login/coach">coach workspace</a>; administrators the <a href="/login/admin">administrative portal</a>.</> : variant === 'coach' ? <>Members use the <a href="/login/client">member sign-in</a>; administrators the <a href="/login/admin">administrative portal</a>.</> : <>Members use the <a href="/login/client">member sign-in</a>; coaches the <a href="/login/coach">coach workspace</a>.</>}</>);
       else if (ex instanceof ApiRequestError && ex.code === 'RATE_LIMITED') setErr('Too many attempts. Wait a few minutes and try again; the account is protected, not lost.');
@@ -132,7 +141,7 @@ function LoginForm({ variant, initialError = '' }: { variant: Variant; initialEr
   };
 
   // demo mode only, as for the sign-in code: the preview helper answers for the secret the set-up step just issued to a seeded account
-  const previewEmail = enrol?.preview && demo && email.trim().toLowerCase().endsWith('@demo.bioptime.test') ? email.trim().toLowerCase() : undefined;
+  const previewEmail = enrol?.preview && demo && staffHelpers && email.trim().toLowerCase().endsWith('@demo.bioptime.test') ? email.trim().toLowerCase() : undefined;
   if (enrol) return <MfaEnrolment token={enrol.token} minutes={enrol.minutes} previewEmail={previewEmail} onSignedIn={(u, p) => setSession(u, p)} onRestart={(why) => { setEnrol(null); setNeedMfa(false); setMfa(''); setErr(why); }} />;
 
   return <form className="form" onSubmit={submit} noValidate>
@@ -143,7 +152,7 @@ function LoginForm({ variant, initialError = '' }: { variant: Variant; initialEr
     <Field label={variant === 'coach' ? 'Coach ID or email' : 'Email'}><Input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus /></Field>
     <Field label="Password"><div className="row" style={{ flexWrap: 'nowrap' }}><Input type={show ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ flex: 1 }} /><button type="button" className="bp-btn bp-btn-tertiary bp-btn-sm" onClick={() => setShow((s) => !s)} aria-pressed={show}>{show ? 'Hide' : 'Show'}</button></div></Field>
     {needMfa && <Field label="Authenticator code" hint="Six digits from your authenticator app. Wrong codes count toward the lockout."><Input inputMode="numeric" pattern="\d{6}" autoComplete="one-time-code" value={mfa} onChange={(e) => setMfa(e.target.value)} required autoFocus /></Field>}
-    {needMfa && demo && email.trim().toLowerCase().endsWith('@demo.bioptime.test') && <p className="small"><button type="button" className="linkButton" onClick={fillDemoCode}>Fill in the preview code</button></p>}
+    {needMfa && demo && staffHelpers && mfaPreview && email.trim().toLowerCase().endsWith('@demo.bioptime.test') && <p className="small"><button type="button" className="linkButton" onClick={fillDemoCode}>Fill in the preview code</button></p>}
     {err && <Alert kind="error">{err}</Alert>}
     <Button variant="primary" size="lg" busy={busy} type="submit">{needMfa ? 'Verify and sign in' : c.cta}</Button>
     {phoneSignIn && <div className="authLinks"><a href={`/login/client/phone${next ? `?next=${encodeURIComponent(next)}` : ''}`}>Sign in with a phone code</a></div>}

@@ -13,9 +13,12 @@ import * as phone from '../../auth/phoneSignIn.js';
 import * as social from '../../auth/social.js';
 import { recordAtSignUp } from '../../domain/referrals.js';
 import { audit } from '../../domain/audit.js';
-import { isOpenPreviewAccount, OPEN_PREVIEW_ACCOUNTS, OPEN_PREVIEW_WORKSPACES, openPreviewProblem } from '../../auth/openPreview.js';
+import { isOpenPreviewAccount, OPEN_PREVIEW_ACCOUNTS, OPEN_PREVIEW_WORKSPACES, openPreviewProblem, openPreviewWorkspaceOff } from '../../auth/openPreview.js';
 
 const WORKSPACES = { member: ['member'], client: ['member'], dashboard: ['coach', 'admin', 'owner'], coach: ['coach'], admin: ['admin', 'owner'] } as const;
+/** Staff accounts: the roles that open the admin workspace (administrators and owners). */
+const STAFF_ROLES: readonly string[] = WORKSPACES.admin;
+const isStaff = (u: { role: string } | null | undefined): boolean => !!u && STAFF_ROLES.includes(u.role);
 
 function setSessionCookie(reply: FastifyReply, token: string, expiresAt: string, secure: boolean): void {
   reply.setCookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', secure, path: '/', expires: new Date(expiresAt) });
@@ -26,6 +29,14 @@ const SIGNED_IN_HINT = 'bp_signed_in';
 
 export function authRoutes(app: FastifyInstance): void {
   const secure = app.config.isProduction;
+  /* Demo mode hands out what email or an authenticator app would otherwise carry: reset and verification tokens
+     (demoToken), the current authenticator code (GET /auth/demo/totp) and the sign-in's pointer to it (previewCodePath).
+     With DEMO_STAFF_HELPERS=0 (config.demoStaffHelpers false) none of them is handed out for an administrator or owner
+     account; members and coaches keep theirs. The other demo helpers serve members only already: the phone sign-in code
+     (seeded members' confirmed numbers, api/auth/phoneSignIn.ts) and the stand-in identity provider (members only,
+     api/auth/social.ts); the invitation tokens of POST /admin/members/invite and /admin/coaches/invite go to a signed-in
+     administrator and open member and coach accounts only. */
+  const demoHelperFor = (u: { role: string } | null | undefined): boolean => app.config.isDemo && (app.config.demoStaffHelpers || !isStaff(u));
 
   // referralCode: the code from a friend's link (register?ref=CODE), from the website or the app. It is the only thing
   // the client says about a referral; the referrals module checks it and records the referral while it is switched on
@@ -67,9 +78,12 @@ export function authRoutes(app: FastifyInstance): void {
     catch (e) {
       // demo mode only: the "code needed" answer names the preview helper (GET /auth/demo/totp, below), so the clients
       // offer "Fill in the preview code" only where it exists; the helper itself admits only seeded accounts. During
-      // enrolment it answers for the secret enrol/start just issued.
-      if (app.config.isDemo && e instanceof AppError && e.code === 'MFA_REQUIRED') throw new AppError('MFA_REQUIRED', 401, e.message, { previewCodePath: '/auth/demo/totp' });
-      if (app.config.isDemo && e instanceof AppError && e.code === 'MFA_ENROLMENT_REQUIRED') throw new AppError(e.code, e.status, e.message, { ...(e.details as object), previewCodePath: '/auth/demo/totp' });
+      // enrolment it answers for the secret enrol/start just issued. Not for a staff account while DEMO_STAFF_HELPERS=0
+      // (these answers come only after the right password, so looking the account up again tells nothing new)
+      if (e instanceof AppError && (e.code === 'MFA_REQUIRED' || e.code === 'MFA_ENROLMENT_REQUIRED') && demoHelperFor(input.coachId !== undefined ? auth.getUserByCoachId(req.ctx, input.coachId) : auth.getUserByEmail(req.ctx, input.email ?? ''))) {
+        if (e.code === 'MFA_REQUIRED') throw new AppError('MFA_REQUIRED', 401, e.message, { previewCodePath: '/auth/demo/totp' });
+        throw new AppError(e.code, e.status, e.message, { ...(e.details as object), previewCodePath: '/auth/demo/totp' });
+      }
       throw e;
     }
     if (kind === 'web') setSessionCookie(reply, s.token, s.expiresAt, secure);
@@ -82,14 +96,22 @@ export function authRoutes(app: FastifyInstance): void {
   // answers exactly as POST /auth/login does (web: the session cookie; X-Bioptime-Client: mobile: the bearer token).
   // The account must exist and be active (and, for admin, have its authenticator enrolled); otherwise 409. Audited as
   // auth.open_preview. The password lockout of the account is left alone: it guards password sign-in only.
+  // OPEN_PREVIEW_WORKSPACES (config.openPreviewWorkspaces) lists the workspaces it opens; any other answers 403
+  // OPEN_PREVIEW_WORKSPACE_OFF. The body names one of exactly three lower-case words (any other spelling, alias such as
+  // owner or dashboard, array or extra nesting is 400 VALIDATION_FAILED), the account is the server's own choice for that
+  // word, and an administrator or owner account is never opened unless admin is listed, whatever the workspace said.
   if (app.config.openPreview) {
+    const openWorkspaces = app.config.openPreviewWorkspaces;
     const openPreviewBody = z.object({ workspace: z.enum(OPEN_PREVIEW_WORKSPACES) });
-    def(app, { method: 'POST', path: '/auth/open-preview', summary: 'OPEN PREVIEW ONLY (BIOPTIME_MODE=demo with OPEN_PREVIEW=1; 404 otherwise): open the workspace member|coach|admin as its fixed account without signing in; answers as /auth/login', tag: 'demo', auth: 'none', body: openPreviewBody, rateLimit: { max: 120, timeWindow: '10 minutes' }, responses: { '409': 'OPEN_PREVIEW_UNAVAILABLE: the workspace’s account is missing, not active, not of that role, or (admin) has no authenticator enrolled; the message says which' } }, async (req, reply) => {
+    def(app, { method: 'POST', path: '/auth/open-preview', summary: 'OPEN PREVIEW ONLY (BIOPTIME_MODE=demo with OPEN_PREVIEW=1; 404 otherwise): open the workspace member|coach|admin (those OPEN_PREVIEW_WORKSPACES lists; all three when unset) as its fixed account without signing in; answers as /auth/login', tag: 'demo', auth: 'none', body: openPreviewBody, rateLimit: { max: 120, timeWindow: '10 minutes' }, responses: { '403': 'OPEN_PREVIEW_WORKSPACE_OFF: this server does not open that workspace without signing in (OPEN_PREVIEW_WORKSPACES); { details: { workspace, workspaces } } names the ones it opens', '409': 'OPEN_PREVIEW_UNAVAILABLE: the workspace’s account is missing, not active, not of that role, or (admin) has no authenticator enrolled; the message says which' } }, async (req, reply) => {
       const { workspace } = parse(openPreviewBody, req.body);
+      if (!openWorkspaces.includes(workspace)) throw openPreviewWorkspaceOff(workspace, openWorkspaces);
       const kind = req.headers['x-bioptime-client'] === 'mobile' ? 'mobile' : 'web';
       const user = auth.getUserByEmail(req.ctx, OPEN_PREVIEW_ACCOUNTS[workspace]);
       const problem = openPreviewProblem(workspace, user);
       if (problem || !user) throw new AppError('OPEN_PREVIEW_UNAVAILABLE', 409, problem ?? 'This workspace cannot open on its own right now.', { workspace });
+      // a second lock on the account itself: a staff session only while the admin workspace is open
+      if (isStaff(user) && !openWorkspaces.includes('admin')) throw openPreviewWorkspaceOff('admin', openWorkspaces);
       // everyone shares this account, so its session rows keep no visitor's address or browser (the audit row has the IP)
       const s = createSession(req.ctx, user, kind, {});
       audit({ ...req.ctx, actor: { id: user.id, role: user.role, email: user.email, name: user.name, sessionId: s.sessionId } }, 'auth.open_preview', { type: 'user', id: user.id }, null, { workspace, kind, sessionId: s.sessionId }); // the session id (never the token) lets a start with the preview off sign these sessions out (endOpenPreviewSessions)
@@ -120,13 +142,15 @@ export function authRoutes(app: FastifyInstance): void {
   def(app, { method: 'POST', path: '/auth/resend-verification', summary: 'Send the verification link again', tag: 'auth', auth: 'none', body: z.object({ email: emailSchema }), rateLimit: { max: 5, timeWindow: '10 minutes' } }, async (req) => {
     const { email } = parse(z.object({ email: emailSchema }), req.body);
     const token = auth.resendVerification(req.ctx, email);
-    return { ok: true, message: 'If that email has an unverified account, a new link is on its way.', ...(app.config.isDemo && token ? { demoToken: token, note: 'Emails are not sent from this server; use this token or the outbox.' } : {}) };
+    // demoToken: demo mode only, and not for an administrator or owner while DEMO_STAFF_HELPERS=0 (the answer is then the
+    // same as for an address without an account)
+    return { ok: true, message: 'If that email has an unverified account, a new link is on its way.', ...(token && demoHelperFor(auth.getUserByEmail(req.ctx, email)) ? { demoToken: token, note: 'Emails are not sent from this server; use this token or the outbox.' } : {}) };
   });
 
-  def(app, { method: 'POST', path: '/auth/password/forgot', summary: 'Request a password reset link', tag: 'auth', auth: 'none', body: z.object({ email: emailSchema }), rateLimit: { max: 5, timeWindow: '10 minutes' } }, async (req) => {
+  def(app, { method: 'POST', path: '/auth/password/forgot', summary: 'Request a password reset link (demo mode: the token comes back as demoToken, except for administrators and owners while DEMO_STAFF_HELPERS=0)', tag: 'auth', auth: 'none', body: z.object({ email: emailSchema }), rateLimit: { max: 5, timeWindow: '10 minutes' } }, async (req) => {
     const { email } = parse(z.object({ email: emailSchema }), req.body);
     const token = auth.requestPasswordReset(req.ctx, email);
-    return { ok: true, message: 'If that email has an account, a reset link is on its way.', ...(app.config.isDemo && token ? { demoToken: token, note: 'Emails are not sent from this server; use this token or the outbox.' } : {}) };
+    return { ok: true, message: 'If that email has an account, a reset link is on its way.', ...(token && demoHelperFor(auth.getUserByEmail(req.ctx, email)) ? { demoToken: token, note: 'Emails are not sent from this server; use this token or the outbox.' } : {}) };
   });
 
   def(app, { method: 'POST', path: '/auth/password/reset', summary: 'Set a new password with a reset token', tag: 'auth', auth: 'none', body: z.object({ token: z.string().min(10), password: passwordSchema }), rateLimit: { max: 10, timeWindow: '10 minutes' } }, async (req) => {
@@ -296,11 +320,13 @@ export function authRoutes(app: FastifyInstance): void {
       return { ...phone.previewCode(req.ctx, parse(phonePreviewBody, req.body).phone), preview: true };
     });
 
-    // demo only: the current TOTP code for a seeded account, so a tester can sign in to the admin workspace without an authenticator
-    def(app, { method: 'GET', path: '/auth/demo/totp', summary: 'DEMO ONLY: current MFA code for a seeded privileged account', tag: 'demo', auth: 'none', query: z.object({ email: z.string() }) }, async (req) => {
+    // demo only: the current TOTP code for a seeded account, so a tester can sign in to the admin workspace without an
+    // authenticator; refused (403 DEMO_STAFF_HELPER_OFF) for administrators and owners while DEMO_STAFF_HELPERS=0
+    def(app, { method: 'GET', path: '/auth/demo/totp', summary: 'DEMO ONLY: current MFA code for a seeded privileged account (403 DEMO_STAFF_HELPER_OFF for administrators and owners while DEMO_STAFF_HELPERS=0)', tag: 'demo', auth: 'none', query: z.object({ email: z.string() }) }, async (req) => {
       const email = String((req.query as Record<string, string>).email ?? '');
       if (!email.endsWith('@demo.bioptime.test')) throw errors.forbidden('Only seeded demo accounts');
       const u = auth.getUserByEmail(req.ctx, email);
+      if (u && !demoHelperFor(u)) throw errors.forbidden('Preview codes are switched off for administrator and owner accounts on this server. Use the authenticator app.', 'DEMO_STAFF_HELPER_OFF');
       if (!u?.mfa_secret) throw errors.notFound('MFA account');
       return { email, code: totpCode(u.mfa_secret), validForSeconds: 30 - (Math.floor(Date.now() / 1000) % 30), demo: true };
     });

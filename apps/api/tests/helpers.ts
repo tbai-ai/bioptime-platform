@@ -42,7 +42,8 @@ export function removeScratchDirs(): void {
  *  replaces the module registry (start-up checks). dirs names the temporary folders this app writes to. */
 export async function makeApp(opts: { seed?: boolean; env?: Record<string, string>; modules?: ApiModule[]; jwks?: JwksFetcher } = {}) {
   const dirs = scratchDirs();
-  const config = loadConfig({ BIOPTIME_MODE: 'demo', DATABASE_PATH: ':memory:', LABSTACK_STANDIN_SPEED: 'manual', JOBS_ENABLED: 'false', RATE_LIMITS: 'off', WEBSITE_DIR: '/nonexistent-website', DASHBOARD_DIR: '/nonexistent-dashboard', PUBLIC_ORIGIN: 'http://localhost:3000', ...dirs, ...opts.env });
+  // the shared link's lockdown switches stay at their defaults unless a test sets them, whatever a local .env says
+  const config = loadConfig({ BIOPTIME_MODE: 'demo', DATABASE_PATH: ':memory:', LABSTACK_STANDIN_SPEED: 'manual', JOBS_ENABLED: 'false', RATE_LIMITS: 'off', WEBSITE_DIR: '/nonexistent-website', DASHBOARD_DIR: '/nonexistent-dashboard', PUBLIC_ORIGIN: 'http://localhost:3000', OPEN_PREVIEW_WORKSPACES: '', DEMO_STAFF_HELPERS: '', ...dirs, ...opts.env });
   const db = new Db(':memory:');
   db.migrate();
   const services = createServices(config, db);

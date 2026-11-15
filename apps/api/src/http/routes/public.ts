@@ -70,7 +70,11 @@ export function publicRoutes(app: FastifyInstance): void {
     // identifiers each flow needs: OAuth client IDs and the Apple Services ID are audiences, never secrets (api/auth/social.ts)
     // openPreview: true only while the open preview is effective (demo mode with OPEN_PREVIEW=1), absent otherwise: the
     // portal, the website and the app then open each workspace through POST /auth/open-preview (api/auth/openPreview.ts)
-    return { available: true, mode: app.config.BIOPTIME_MODE, demo: app.config.isDemo, emailProvider: app.config.EMAIL_PROVIDER, emailDelivered: app.config.EMAIL_PROVIDER !== 'outbox', supportEmail: s.support_email, termsVersion: '2026-10-17', privacyVersion: '2026-10-17', labVendor: app.services.vendor.mode, payments: app.services.payments.name, entitlementUnit: s.entitlement_unit, features: enabledFeatures(req.ctx), signIn: await publicSignInConfig(app.config, app.services.identity), ...(app.config.openPreview ? { openPreview: true as const } : {}) };
+    // openPreviewWorkspaces: beside it, the workspaces it opens (OPEN_PREVIEW_WORKSPACES; all three unless narrowed); the
+    // others sign in with a password. openPreview itself stays a plain true for the clients that read only that
+    // demoStaffHelpers: demo mode only; false while DEMO_STAFF_HELPERS=0, so the portal offers no "Fill in the preview
+    // code" for an administrator or owner (the server refuses it anyway)
+    return { available: true, mode: app.config.BIOPTIME_MODE, demo: app.config.isDemo, emailProvider: app.config.EMAIL_PROVIDER, emailDelivered: app.config.EMAIL_PROVIDER !== 'outbox', supportEmail: s.support_email, termsVersion: '2026-10-17', privacyVersion: '2026-10-17', labVendor: app.services.vendor.mode, payments: app.services.payments.name, entitlementUnit: s.entitlement_unit, features: enabledFeatures(req.ctx), signIn: await publicSignInConfig(app.config, app.services.identity), ...(app.config.openPreview ? { openPreview: true as const, openPreviewWorkspaces: app.config.openPreviewWorkspaces } : {}), ...(app.config.isDemo ? { demoStaffHelpers: app.config.demoStaffHelpers } : {}) };
   });
   // published website content and theme: what the public site reads at runtime (drafts only with an administrator session)
   def(app, { method: 'GET', path: '/public/content', summary: 'Published website content blocks (key → value) and the publish version', tag: 'public', auth: 'none' }, async (req, reply) => { reply.header('cache-control', 'no-cache'); return content.publishedContent(req.ctx); });

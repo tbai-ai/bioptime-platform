@@ -8,6 +8,8 @@
    - images, video, audio and fonts (website and portal): a day, revalidated afterwards by ETag (the website's own
      _headers asks the same for /assets/*, /brand/* and /lottie/*, which hold these files and the Lottie animations).
    - everything else (HTML, CSS, JavaScript that is not hashed, the web manifest): revalidated on every use, as before.
+   - the API (/api): no-store, except the public media, images and page content whose routes set their own policy
+     (apiCacheControl below).
 
    Compression
    - only text types (HTML, CSS, JavaScript, JSON, SVG, the web manifest, plain text and XML) of at least 1 KB, for a
@@ -51,6 +53,30 @@ export function siteCacheControl(rel: string): string {
   if (isMediaFile(rel)) return CACHE_DAY;
   if (rel.startsWith('lottie/') && rel.endsWith('.json')) return CACHE_DAY; // the animations, as the site's _headers asks
   return CACHE_REVALIDATE;
+}
+
+/* ---------- API answers ---------- */
+
+/** The policy of every API answer that is not public media or a public page's content. */
+export const CACHE_API = 'no-store';
+
+/** onSend for every /api answer (api/http/app.ts). Without a Cache-Control, iOS's URL cache wrote the sign-in request
+ *  with its password, bearer tokens and health answers to disk, and Android's OkHttp kept the answers of one account
+ *  after sign-out (traffic inspection of 15 November 2026, final-builds/traffic/TRAFFIC_REPORT.md H1 and H2). So an API
+ *  answer is Cache-Control: no-store, with Pragma: no-cache for HTTP/1.0 caches, unless a route chose its own policy
+ *  on purpose. That choice is kept only on /api/public/ routes, which answer every caller the same: the exercise clips
+ *  and posters and the uploaded images (immutable for a year, with their 304s), the website's published content and
+ *  theme, the public webinar and call-slot lists (no-cache). Everywhere else (the sign-in, MFA, password and session
+ *  routes under /api/auth/, everything a signed-in caller reads or writes), and for an error, an answer that sets a
+ *  cookie or one no route made, the answer is no-store whatever the route said; a route's own policy that already says
+ *  no-store (no-store, private) is kept as it is. */
+export function apiCacheControl(req: FastifyRequest, reply: FastifyReply): void {
+  const own = reply.getHeader('cache-control');
+  const ownText = Array.isArray(own) ? own.join(', ') : own === undefined ? '' : String(own);
+  const deliberate = !!ownText && (req.routeOptions?.url ?? '').startsWith('/api/public/') && reply.statusCode < 400 && reply.getHeader('set-cookie') === undefined;
+  if (deliberate && !/no-store/i.test(ownText)) return;
+  if (!/no-store/i.test(ownText)) reply.header('cache-control', CACHE_API);
+  reply.header('pragma', 'no-cache');
 }
 
 /* ---------- compression ---------- */

@@ -64,9 +64,27 @@ function writeOutbox(ctx: Ctx, channel: 'email' | 'sms' | 'push', to: string, su
   ctx.db.insert('outbox_messages', { id: ids.outbox(), channel, to_address: to, subject, body, notification_id: notificationId, status: 'logged', created_at: ctx.now() });
 }
 
+/** Notification data keys that hold a single-use link with its token: email verification, password reset, member and
+ *  owner activation, coach invitation (api/auth/service.ts). The link belongs to the email (a provider adapter sends
+ *  it; the record stays with the notification for that, readable by the operator only), never to the in-app inbox:
+ *  whoever holds a session, a stolen one or the open preview's shared one, could otherwise verify an address or set a
+ *  new password without the mailbox (traffic inspection M5, 15 November 2026). No client reads them: the website and
+ *  the app take the demo's token from the answer of the request itself (demoToken), not from the inbox. */
+const LINK_KEYS: ReadonlySet<string> = new Set(['verifyUrl', 'resetUrl', 'activateUrl', 'inviteUrl']);
+const TOKEN_IN_LINK = /[?&#](?:token|code|key|id_token)=/i;
+
+/** A notification's data as the inbox (GET /notifications) returns it: without the link keys above, and, as a safety
+ *  net for a later notification, without any key named like a token, secret or password or any text value that carries
+ *  a token, code or key parameter. */
+export function inboxData(data: unknown): Record<string, unknown> {
+  // a stored value that is not an object (never written by notify(), which always stores one) shows as no data, not an error
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return {};
+  return Object.fromEntries(Object.entries(data).filter(([k, v]) => !LINK_KEYS.has(k) && !/token|secret|password/i.test(k) && !(typeof v === 'string' && TOKEN_IN_LINK.test(v))));
+}
+
 export function listNotifications(ctx: Ctx, userId: string, limit = 50, unreadOnly = false) {
   const rows = ctx.db.all(`SELECT * FROM notifications WHERE user_id = ? ${unreadOnly ? 'AND read_at IS NULL' : ''} ORDER BY created_at DESC LIMIT ?`, [userId, limit]);
-  return rows.map((r) => ({ ...r, data: j.out(r.data, {}) }));
+  return rows.map((r) => ({ ...r, data: inboxData(j.out<unknown>(r.data, {})) }));
 }
 
 export function markRead(ctx: Ctx, userId: string, notificationIds: string[] | 'all'): number {
