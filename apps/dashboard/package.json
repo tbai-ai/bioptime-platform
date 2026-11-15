@@ -1,0 +1,29 @@
+{
+  "name": "@bioptime/dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Bioptime coach and admin dashboard: a React single-page app on the shared API, served under /dashboard.",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview --port 5173",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bioptime/domain": "*",
+    "framer-motion": "^12.23.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.0",
+    "three": "^0.160.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/three": "^0.160.0",
+    "@vitejs/plugin-react": "^4.5.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}

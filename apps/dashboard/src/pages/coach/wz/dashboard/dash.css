@@ -1,0 +1,128 @@
+/* The coach dashboard, clients list and client profile of the coach workspace (group "dash": pages/coach/wz/dashboard
+   and pages/coach/wz/clients). Every rule sits under a .wzd* class and uses the --bp-* tokens only, so Bioptime's
+   colours, fonts and the rest of the portal stay as they are. The shared pieces (page header, KPI tiles, chips, card
+   grid, accent card, status pill) are the shell's (pages/coach/wz/ui.tsx, styles/coach-wz.css). */
+
+.wzdPage { min-width: 0; }
+.wzdStrong { color: var(--bp-color-text-primary); }
+.wzdSection { display: block; margin: 2px 0 8px; }
+.wzdCellAction { text-align: right; white-space: nowrap; }
+
+/* ---------- dashboard ---------- */
+.wzdGreetSide { display: flex; align-items: center; gap: 16px; }
+.wzdGreetMeta { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.wzdGreetMeta code { margin-left: 4px; }
+/* the small 3D brand mark at the greeting's right (components/BrandMark3D: flat SVG first, 3D drawn over it) */
+.wzdGreetMark { flex: 0 0 auto; width: 84px; aspect-ratio: 1; }
+@media (max-width: 720px) {
+  .wzdGreetSide { width: 100%; justify-content: space-between; gap: 10px; }
+  .wzdGreetMeta { justify-content: flex-start; }
+  .wzdGreetMark { width: 56px; }
+}
+.wzdOverview .bp-card-head { flex-wrap: wrap; gap: 10px; }
+.wzdFilter { display: inline-flex; align-items: center; gap: 6px; color: var(--bp-color-text-muted); }
+.wzdFilter .bp-input { width: 210px; max-width: 100%; }
+.wzdOverviewPanel { margin-top: 14px; }
+/* on a phone the five overview lists wrap onto a few rows instead of scrolling sideways, so every list and its count
+   stays in view */
+@media (max-width: 720px) { .wzdOverview .wzChips[role="tablist"] { flex-wrap: wrap; overflow-x: visible; } }
+.wzdTableCard { min-width: 0; padding: 12px 14px; border: 1px solid var(--bp-color-border-default); border-radius: var(--bp-radius-md); background: var(--bp-color-surface-inset); }
+.wzdTableCard .bp-empty { padding-top: 18px; padding-bottom: 18px; }
+.wzdSideBySide { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 1100px) { .wzdSideBySide { grid-template-columns: minmax(0, 1fr); } }
+.wzdMiniTiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.wzdMiniTile { display: flex; flex-direction: column; gap: 4px; color: inherit; text-decoration: none; transition: border-color var(--bp-duration-fast); }
+.wzdMiniTile:hover { border-color: var(--bp-color-border-strong); }
+.wzdMiniTile:focus-visible { outline: var(--bp-focus-width) solid var(--bp-color-border-focus); outline-offset: var(--bp-focus-offset); }
+.wzdMiniTile b { font-size: 24px; letter-spacing: -.02em; color: var(--bp-color-text-primary); }
+.wzdApptList { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; }
+.wzdApptList li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--bp-color-border-default); font-size: 14px; }
+.wzdApptList li:last-child { border-bottom: 0; }
+
+/* ---------- clients list ---------- */
+.wzdSearch { position: relative; display: flex; align-items: center; }
+.wzdSearchIcon { position: absolute; left: 10px; color: var(--bp-color-text-muted); pointer-events: none; }
+.wzdSearch .bp-input { width: 260px; max-width: 100%; padding-left: 32px; }
+.wzdToolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.wzdToolbarRight { display: flex; flex-wrap: wrap; gap: 8px; }
+.wzdInlineSelect { display: inline-flex; align-items: center; gap: 6px; color: var(--bp-color-text-muted); }
+.wzdInlineSelect .bp-select { max-width: 220px; }
+.wzdClientGrid { list-style: none; margin: 0; padding: 0; }
+.wzdClientRow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+.wzdAvatar { margin-top: 2px; }
+.wzdClientMain { min-width: 0; }
+.wzdClientTop { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.wzdClientName { font-size: 15px; font-weight: 700; color: var(--bp-color-text-primary); text-decoration: none; }
+.wzdClientName:hover { text-decoration: underline; }
+.wzdClientSub { display: flex; flex-wrap: wrap; gap: 2px 10px; margin-top: 2px; font-size: 12px; color: var(--bp-color-text-muted); }
+.wzdFacts { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px solid var(--bp-color-border-default); display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--bp-color-text-secondary); }
+.wzdFacts li { display: inline-flex; align-items: center; gap: 6px; }
+.wzdMiniBar { display: inline-block; width: 56px; }
+/* an ended assignment: history only, no link, no menu, no facts */
+.wzdClientEnded { grid-template-columns: auto minmax(0, 1fr); }
+.wzdClientEnded .wzdClientName { color: var(--bp-color-text-secondary); }
+.wzdEndedNote { display: block; margin-bottom: 0; }
+.wzdPagerRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+@media (max-width: 720px) { .wzdSearch, .wzdSearch .bp-input { width: 100%; } .wzdToolbarRight { width: 100%; } .wzdInlineSelect { flex: 1 1 140px; } .wzdInlineSelect .bp-select { max-width: none; width: 100%; } }
+
+/* the per-client ⋮ menu */
+.wzdMenuWrap { position: relative; }
+.wzdMenuBtn { margin: -6px -6px 0 0; }
+.wzdMenu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: flex; flex-direction: column; min-width: 220px; padding: 6px; border: 1px solid var(--bp-color-border-strong); border-radius: var(--bp-radius-md); background: var(--bp-color-surface-raised); box-shadow: var(--bp-shadow-raised); }
+.wzdMenu button { padding: 9px 12px; border: 0; border-radius: var(--bp-radius-sm); background: transparent; color: var(--bp-color-text-primary); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.wzdMenu button:hover, .wzdMenu button:focus-visible { background: var(--bp-color-surface-hover); outline: none; }
+.wzdMenu button:focus-visible { box-shadow: inset 0 0 0 2px var(--bp-color-border-focus); }
+
+/* ---------- client profile ---------- */
+/* left column: identity, Goal and Notes, Quick actions, Personal information and Package; the record spans every row
+   (the last row takes the slack, so the left cards stay packed at the top). On a phone: identity, quick actions, the
+   record, then the rest. */
+.wzdProfile { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); grid-template-areas: "back back" "id main" "sideA main" "quick main" "sideB main" ". main"; grid-template-rows: auto auto auto auto auto 1fr; gap: 14px 20px; align-items: start; }
+.wzdBackLink { grid-area: back; justify-self: start; }
+.wzdProfileId { grid-area: id; min-width: 0; }
+.wzdProfileSide { min-width: 0; }
+.wzdSideA { grid-area: sideA; }
+.wzdSideQuick { grid-area: quick; }
+.wzdSideB { grid-area: sideB; }
+.wzdProfileMain { grid-area: main; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+@media (max-width: 1100px) { .wzdProfile { grid-template-columns: minmax(0, 1fr); grid-template-areas: "back" "id" "quick" "main" "sideA" "sideB"; grid-template-rows: none; } }
+.wzdIdCard { border-color: var(--bp-color-border-strong); }
+.wzdIdTop { display: flex; align-items: center; gap: 14px; }
+.wzdAvatarLg { width: 64px; height: 64px; font-size: 22px; }
+.wzdIdMain { min-width: 0; }
+.wzdIdName { margin: 0; font-size: 22px; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.wzdIdCode { display: flex; align-items: center; gap: 2px; margin-top: 2px; }
+.wzdCopy { width: 30px; height: 30px; }
+.wzdCopy svg { width: 16px; height: 16px; }
+.wzdIdPills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.wzdIdActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.wzdIdActions .bp-btn, .wzdQuick .bp-btn { display: inline-flex; align-items: center; gap: 6px; }
+.wzdIdSince { margin-top: 10px; }
+.wzdNoteList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.wzdNoteList li { padding-bottom: 10px; border-bottom: 1px solid var(--bp-color-border-default); }
+.wzdNoteList li:last-child { padding-bottom: 0; border-bottom: 0; }
+.wzdNoteList p { margin: 0 0 2px; font-size: 13px; color: var(--bp-color-text-body); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.wzdQuick { display: flex; flex-wrap: wrap; gap: 8px; }
+.wzdEnt { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.wzdEnt li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wzdEnt b { color: var(--bp-color-text-primary); font-weight: 600; }
+
+/* the tab grid (3 to 4 a row) over the record */
+.wzdTabGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 1280px) { .wzdTabGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.wzdTabBtn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--bp-color-border-strong); border-radius: var(--bp-radius-pill); background: var(--bp-color-surface-default); color: var(--bp-color-text-secondary); font: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; text-align: center; cursor: pointer; transition: background-color var(--bp-duration-fast), border-color var(--bp-duration-fast), color var(--bp-duration-fast); }
+.wzdTabBtn svg { flex: 0 0 auto; }
+.wzdTabBtn:hover { color: var(--bp-color-text-primary); border-color: var(--bp-color-text-muted); }
+.wzdTabBtn[aria-selected="true"] { background: var(--bp-color-action-primary); border-color: var(--bp-color-action-primary); color: var(--bp-color-action-primaryText); }
+.wzdTabBtn[aria-selected="true"] .bp-badge { background: rgba(255, 255, 255, .22); border-color: transparent; color: inherit; }
+.wzdTabBtn:focus-visible { outline: var(--bp-focus-width) solid var(--bp-color-border-focus); outline-offset: var(--bp-focus-offset); }
+@media (max-width: 560px) { .wzdTabBtn { flex-direction: column; gap: 4px; min-height: 58px; padding: 8px 6px; border-radius: var(--bp-radius-md); font-size: 12px; } }
+
+/* the existing client record (pages/ClientDetail) under the grid, in its embedded mode: it draws neither its own
+   header nor its tab strip (the identity column and the grid do); its tab panels, alerts and dialogs show as they are. */
+.wzdEmbed { min-width: 0; }
+/* the record's own 12-column grids sit in a narrower column here than on the old full-width page: they step down by
+   the column's width instead of the window's, so a third-width card never clips its table */
+.wzdEmbed { container-type: inline-size; }
+@container (max-width: 980px) { .wzdEmbed .span3, .wzdEmbed .span4 { grid-column: span 6; } .wzdEmbed .span5, .wzdEmbed .span7, .wzdEmbed .span8 { grid-column: span 12; } }
+@container (max-width: 620px) { .wzdEmbed .span3, .wzdEmbed .span4, .wzdEmbed .span5, .wzdEmbed .span6, .wzdEmbed .span7, .wzdEmbed .span8 { grid-column: span 12; } }

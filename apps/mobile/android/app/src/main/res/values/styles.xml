@@ -1,0 +1,35 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+  <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+    <item name="colorPrimary">@color/colorPrimary</item>
+    <item name="colorAccent">@color/colorAccent</item>
+    <item name="alertDialogTheme">@style/AppTheme.AlertDialog</item>
+    <!-- the Alert title React Native draws itself (alert_title_layout: ?android:attr/windowTitleStyle of this theme) -->
+    <item name="android:windowTitleStyle">@style/AppTheme.AlertTitle</item>
+    <item name="android:statusBarColor">@android:color/transparent</item>
+    <item name="android:navigationBarColor">@android:color/transparent</item>
+    <item name="android:windowBackground">@color/activityBackground</item>
+  </style>
+  <!-- native Alert dialogs (Sign out, photos, Fuel, Habits, billing, data): dark like the app whatever the phone's own
+       light or dark setting, on fx.bg.elevated, white title and text, red buttons (fx.red.vivid, AA on the surface) -->
+  <style name="AppTheme.AlertDialog" parent="Theme.AppCompat.Dialog.Alert">
+    <item name="colorAccent">@color/dialogAction</item>
+    <item name="colorPrimary">@color/dialogAction</item>
+    <item name="colorBackgroundFloating">@color/dialogSurface</item>
+    <item name="android:colorBackground">@color/dialogSurface</item>
+  </style>
+  <style name="AppTheme.AlertTitle" parent="android:Widget">
+    <item name="android:maxLines">1</item>
+    <item name="android:scrollHorizontally">true</item>
+    <item name="android:textAppearance">@style/AppTheme.AlertTitleText</item>
+  </style>
+  <style name="AppTheme.AlertTitleText" parent="TextAppearance.AppCompat.Title">
+    <item name="android:textColor">@color/dialogTitle</item>
+  </style>
+  <style name="Theme.App.SplashScreen" parent="Theme.SplashScreen">
+    <item name="windowSplashScreenBackground">@color/splashscreen_background</item>
+    <item name="windowSplashScreenAnimatedIcon">@drawable/splashscreen_logo</item>
+    <item name="postSplashScreenTheme">@style/AppTheme</item>
+    <item name="android:windowSplashScreenBehavior">icon_preferred</item>
+  </style>
+</resources>

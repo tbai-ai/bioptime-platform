@@ -1,0 +1,39 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath('com.android.tools.build:gradle')
+    classpath('com.facebook.react:react-native-gradle-plugin')
+    def kotlinVersion = findProperty('android.kotlinVersion')
+    classpath(kotlinVersion ? "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion" : 'org.jetbrains.kotlin:kotlin-gradle-plugin')
+  }
+}
+
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
+  }
+  // The native code built here (the app's own CMake build, which compiles the libraries' generated code, and every
+  // library built from source) names its sources by their build-relative path, not the build machine's: the app's
+  // folder becomes '.' and the home folder '~', so no account name or build folder is left in a released library
+  // (__FILE__ strings, debug paths) and two builds in different folders give the same libraries (AUD-3). The app's
+  // folder is mapped before and after the home folder, so it wins whichever order the compiler applies them in.
+  def appDir = rootProject.projectDir.parentFile.canonicalPath
+  def homeDir = new File(System.getProperty('user.home')).canonicalPath
+  def prefixMaps = ["-ffile-prefix-map=${appDir}=.", "-ffile-prefix-map=${homeDir}=~", "-ffile-prefix-map=${appDir}=."].collect { it.toString() }
+  ['com.android.application', 'com.android.library'].each { id ->
+    plugins.withId(id) {
+      android.defaultConfig.externalNativeBuild.cmake.cFlags(*prefixMaps)
+      android.defaultConfig.externalNativeBuild.cmake.cppFlags(*prefixMaps)
+    }
+  }
+}
+
+apply plugin: "expo-root-project"
+apply plugin: "com.facebook.react.rootproject"

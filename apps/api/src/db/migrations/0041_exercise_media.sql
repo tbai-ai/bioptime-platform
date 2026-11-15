@@ -1,0 +1,11 @@
+-- Exercise media served by the Bioptime server (30 October 2026; api/domain/exerciseMedia.ts). Additive only; depends on
+-- 0014 (exercises).
+--
+-- The clips and posters are files, not rows: they live in EXERCISE_MEDIA_DIR (default apps/api/media/exercises) with
+-- a manifest.json naming each file by its content hash, and GET /public/media/exercises/:file serves only names that
+-- manifest lists. EXERCISE_MEDIA (server | none) switches them on or off; VIDEO_PROVIDER, the course video host, is a
+-- separate switch and is not touched. An exercise points at its clip through the existing exercises.media_ref (a
+-- manifest key, set by an administrator and checked against the manifest; empty since 0014). Nothing is backfilled.
+--
+-- This index answers "which exercises show this clip" (a clip that fails review is unmapped everywhere at once).
+CREATE INDEX exercises_media_ref ON exercises (media_ref) WHERE media_ref IS NOT NULL;

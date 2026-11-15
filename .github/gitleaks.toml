@@ -1,0 +1,22 @@
+# gitleaks configuration for .github/workflows/secret-scan.yml (gitleaks 8.30). See .github/CI.md.
+# The default rules stay on; the allowlists below only drop known false positives, each limited to one rule and one
+# file. Never add a real secret, or any part of one, to this file: it is public.
+title = "Bioptime gitleaks config"
+
+[extend]
+useDefault = true
+
+# CocoaPods writes one SHA-1 per pod under SPEC CHECKSUMS; generic-api-key mistakes some of them for keys.
+[[allowlists]]
+description = "Podfile.lock SPEC CHECKSUMS (podspec SHA-1 hashes)"
+targetRules = ["generic-api-key"]
+paths = ['''(^|/)Podfile\.lock$''']
+
+# The API test that checks partner keys are redacted from responses uses made-up keys of the form <prefix>_test_<n>.
+# Only values with that "_test_" marker, in that one file, are allowed; any other key there is still reported.
+[[allowlists]]
+description = "Made-up LabStack keys in the redaction test"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(^|/)apps/api/tests/integration/labstackOps\.test\.ts$''']
+regexes = ['''^[a-z]{4}_test_[0-9a-z]+$''']

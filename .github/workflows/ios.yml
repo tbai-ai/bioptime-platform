@@ -1,0 +1,158 @@
+# UNSIGNED iOS archive of the client app, packaged as an .ipa. See .github/CI.md.
+# The .ipa is not signed: it cannot be installed on a phone as it is. It proves the app builds and gives a file to
+# re-sign later. This repository is public, so the artifact carries nothing private (no link-relay topic).
+name: iOS archive (unsigned)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  archive:
+    name: xcodebuild archive
+    # The Xcode 27 image (arm64, a public preview in actions/runner-images in Nov 2026). It carries Xcode 27.2
+    # (27B52), the same Xcode and Swift (6.4.2) the Mac builds the app with; its default is 27.1, so 27.2 is
+    # selected below. macos-26 (Xcode 26.6) has not been tried with this app.
+    runs-on: xcode-27
+    timeout-minutes: 120
+    env:
+      XCODE_APP: /Applications/Xcode_27.2.app
+      # CocoaPods needs a UTF-8 locale
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Check the native project is in the repository
+        run: |
+          for f in apps/mobile/ios/Podfile apps/mobile/ios/Podfile.lock apps/mobile/ios/Podfile.properties.json apps/mobile/ios/Bioptime.xcodeproj/project.pbxproj; do
+            if [ ! -f "$f" ]; then
+              echo "::error::$f is not in the repository (is apps/mobile/ios still listed in .gitignore?). The ios folder is kept by hand and is never generated, so it must be committed."
+              exit 1
+            fi
+          done
+
+      - name: Select Xcode 27.2
+        run: |
+          if [ -d "$XCODE_APP" ]; then
+            echo "DEVELOPER_DIR=$XCODE_APP/Contents/Developer" >> "$GITHUB_ENV"
+          else
+            echo "::warning::$XCODE_APP is not on this runner image; the image's default Xcode is used."
+          fi
+
+      - name: Show the toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          pod --version
+          node --version
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - name: Install the app's npm packages
+        working-directory: apps/mobile
+        run: npm ci --no-audit --no-fund
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: cocoapods-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/mobile/ios/Podfile.lock') }}
+          restore-keys: cocoapods-${{ runner.os }}-${{ runner.arch }}-
+
+      # Podfile.properties.json is used as committed: precompiled Expo modules on (EXPO_USE_PRECOMPILED_MODULES),
+      # with expo-file-system and expo-video built from source (apps/mobile/package.json expo.autolinking.ios
+      # .buildFromSource; their prebuilt binaries crash at launch).
+      - name: pod install
+        working-directory: apps/mobile/ios
+        run: |
+          pod install
+          if ! git diff --quiet -- Podfile.lock Podfile.properties.json; then
+            echo "::warning::pod install changed Podfile.lock or Podfile.properties.json; commit the result from the Mac if this was intended."
+            git diff --stat -- Podfile.lock Podfile.properties.json
+          fi
+
+      - name: Archive without signing
+        working-directory: apps/mobile/ios
+        env:
+          # the same build-time values as the Android tester build, minus the private link relay
+          EXPO_PUBLIC_ALLOW_SERVER_OVERRIDE: '1'
+          EXPO_PUBLIC_STAFF_APP: '0'
+          EXPO_PUBLIC_LINK_RELAY_TOPIC: ''
+          EXPO_PUBLIC_LINK_RELAY_BASE: ''
+          BIOPTIME_API_BASE: ${{ vars.BIOPTIME_API_BASE }}
+          EXPO_NO_TELEMETRY: '1'
+        run: |
+          if [ -n "${BIOPTIME_API_BASE}" ]; then export EXPO_PUBLIC_API_BASE="${BIOPTIME_API_BASE}"; fi
+          log="$RUNNER_TEMP/xcodebuild-archive.log"
+          if ! xcodebuild \
+              -workspace Bioptime.xcworkspace \
+              -scheme Bioptime \
+              -configuration Release \
+              -destination 'generic/platform=iOS' \
+              -archivePath "$RUNNER_TEMP/Bioptime.xcarchive" \
+              -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
+              archive > "$log" 2>&1; then
+            grep -n -E 'error:|Stack dump|PLEASE submit a bug report|\*\* ARCHIVE FAILED' "$log" | head -60 || true
+            echo "----- last 120 lines -----"
+            tail -120 "$log"
+            exit 1
+          fi
+          tail -3 "$log"
+
+      - name: Upload the xcodebuild log (failed runs only)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: xcodebuild-log-${{ github.run_number }}
+          path: ${{ runner.temp }}/xcodebuild-archive.log
+          if-no-files-found: ignore
+          retention-days: 7
+          overwrite: true
+
+      - name: Package Payload/*.app into an unsigned .ipa
+        id: ipa
+        run: |
+          app=$(find "$RUNNER_TEMP/Bioptime.xcarchive/Products/Applications" -maxdepth 1 -name '*.app' | head -1)
+          if [ -z "$app" ]; then echo "::error::no .app in the archive"; exit 1; fi
+          # a Release build must carry the Hermes bundle; without it the app would look for a Metro server at launch
+          if [ ! -s "$app/main.jsbundle" ]; then echo "::error::$(basename "$app") has no main.jsbundle (the JavaScript bundle phase did not run)"; exit 1; fi
+          stage="$RUNNER_TEMP/ipa"
+          rm -rf "$stage" && mkdir -p "$stage/Payload"
+          ditto "$app" "$stage/Payload/$(basename "$app")"
+          out="$RUNNER_TEMP/bioptime-ios-unsigned-${GITHUB_SHA::7}.ipa"
+          (cd "$stage" && zip -qry "$out" Payload)
+          echo "path=$out" >> "$GITHUB_OUTPUT"
+          {
+            echo "### iOS archive: UNSIGNED .ipa (cannot be installed until it is signed)"
+            echo '```'
+            ls -l "$out" | awk '{print $5, $NF}'
+            shasum -a 256 "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bioptime-ios-unsigned-${{ github.run_number }}
+          path: ${{ steps.ipa.outputs.path }}
+          if-no-files-found: error
+          retention-days: 14
+          # a re-run of this job replaces the artifact of the earlier attempt instead of failing on the name
+          overwrite: true

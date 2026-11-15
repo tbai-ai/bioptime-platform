@@ -1,0 +1,185 @@
+"""Writes apps/mobile/src/fx/media/photos.generated.ts from tools/photos/photos.json and the graded files in
+apps/mobile/assets/photos (build_photos.py calls it after grading; it can also run on its own):
+
+    python -I tools/photos/manifest.py
+
+For each photo: the three files as require() modules, the size of the 1080 file, the focal point, a ThumbHash of the
+graded 1080 file (expo-image `placeholder={{ thumbhash }}`), the alt text, whether it shows people, and its credit.
+The ThumbHash encoder follows Evan Wallace's reference implementation (github.com/evanw/thumbhash, MIT).
+"""
+import base64
+import json
+import math
+import os
+import sys
+
+from PIL import Image
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+PLATFORM = os.path.dirname(os.path.dirname(HERE))
+MOBILE = os.path.join(PLATFORM, 'apps', 'mobile')
+ASSETS = os.path.join(MOBILE, 'assets', 'photos')
+OUT = os.path.join(MOBILE, 'src', 'fx', 'media', 'photos.generated.ts')
+WIDTHS = (64, 1080, 1600)
+
+
+def thumbhash(im):
+    """ThumbHash of an RGB image; the image is scaled to fit 100 x 100 first."""
+    im = im.convert('RGB')
+    im.thumbnail((100, 100), Image.BILINEAR)
+    w, h = im.size
+    px = list(im.getdata())
+    n = w * h
+    avg_r = sum(p[0] for p in px) / 255 / n
+    avg_g = sum(p[1] for p in px) / 255 / n
+    avg_b = sum(p[2] for p in px) / 255 / n
+    # no alpha: luminance gets 7 bits of detail along the long side
+    lx = max(1, round(7 * w / max(w, h)))
+    ly = max(1, round(7 * h / max(w, h)))
+    lum, yb, rg = [], [], []
+    for r, g, b in px:
+        r, g, b = r / 255, g / 255, b / 255
+        lum.append((r + g + b) / 3)
+        yb.append((r + g) / 2 - b)
+        rg.append(r - g)
+
+    def encode(channel, nx, ny):
+        dc, ac, scale = 0.0, [], 0.0
+        for cy in range(ny):
+            cx = 0
+            while cx * ny < nx * (ny - cy):
+                fx = [math.cos(math.pi / w * cx * (x + 0.5)) for x in range(w)]
+                f = 0.0
+                for y in range(h):
+                    fy = math.cos(math.pi / h * cy * (y + 0.5))
+                    row = y * w
+                    for x in range(w):
+                        f += channel[row + x] * fx[x] * fy
+                f /= n
+                if cx or cy:
+                    ac.append(f)
+                    scale = max(scale, abs(f))
+                else:
+                    dc = f
+                cx += 1
+        if scale:
+            ac = [0.5 + 0.5 / scale * f for f in ac]
+        return dc, ac, scale
+
+    l_dc, l_ac, l_scale = encode(lum, max(3, lx), max(3, ly))
+    p_dc, p_ac, p_scale = encode(yb, 3, 3)
+    q_dc, q_ac, q_scale = encode(rg, 3, 3)
+    landscape = w > h
+    header24 = round(63 * l_dc) | (round(31.5 + 31.5 * p_dc) << 6) | (round(31.5 + 31.5 * q_dc) << 12) | (round(31 * l_scale) << 18)
+    header16 = (ly if landscape else lx) | (round(63 * p_scale) << 3) | (round(63 * q_scale) << 9) | (int(landscape) << 15)
+    out = [header24 & 255, (header24 >> 8) & 255, header24 >> 16, header16 & 255, header16 >> 8]
+    index = 0
+    for ac in (l_ac, p_ac, q_ac):
+        for f in ac:
+            pos = 5 + (index >> 1)
+            if pos == len(out):
+                out.append(0)
+            out[pos] |= round(15 * f) << ((index & 1) << 2)
+            index += 1
+    return base64.b64encode(bytes(out)).decode('ascii')
+
+
+def ts_string(value):
+    return "'" + value.replace('\\', '\\\\').replace("'", "\\'") + "'"
+
+
+def load_table():
+    with open(os.path.join(HERE, 'photos.json'), encoding='utf-8') as f:
+        return json.load(f)
+
+
+def entry(photo, downloaded):
+    pid = photo['id']
+    with Image.open(os.path.join(ASSETS, f'{pid}-1080.webp')) as im:
+        width, height = im.size
+        hash_ = thumbhash(im)
+    c = photo['credit']
+    fx, fy = photo['focal']
+    lines = [
+        f"  '{pid}': {{",
+        f"    id: '{pid}',",
+        *[f"    x{w}: require('@/assets/photos/{pid}-{w}.webp')," for w in WIDTHS],
+        f'    width: {width},',
+        f'    height: {height},',
+        f'    focal: {{ x: {fx}, y: {fy} }},',
+        f"    thumbhash: '{hash_}',",
+        f'    alt: {ts_string(photo["alt"])},',
+        f'    decorative: {str(photo["decorative"]).lower()},',
+        f'    people: {str(photo["people"]).lower()},',
+        '    credit: {',
+        f'      author: {ts_string(c["author"])},',
+        f'      authorUrl: {ts_string(c["authorUrl"])},',
+        f"      source: '{c['source']}',",
+        f'      url: {ts_string(c["url"])},',
+        f'      licence: {ts_string(c["licence"])},',
+        f"      downloaded: '{downloaded}',",
+        '    },',
+        '  },',
+    ]
+    return '\n'.join(lines)
+
+
+def write(table=None):
+    table = table or load_table()
+    photos = table['photos']
+    ids = ''.join(f"\n  | '{p['id']}'" for p in photos)
+    body = '\n'.join(entry(p, table['downloaded']) for p in photos)
+    source = f"""/* Generated by tools/photos/manifest.py from tools/photos/photos.json: do not edit by hand.
+   Every photo is a real licensed photograph (Unsplash or Pexels free licence), graded with bioptime-grade v1
+   (tools/photos/grade.py). Screens pick photos by slot (./slots.ts), never by id. */
+
+export type PhotoId ={ids};
+
+export type PhotoCredit = {{
+  author: string;
+  authorUrl: string;
+  source: 'unsplash' | 'pexels';
+  url: string;
+  licence: string;
+  /** Day the master was downloaded and its licence recorded. */
+  downloaded: string;
+}};
+
+export type PhotoEntry = {{
+  id: PhotoId;
+  /** 64 px wide copy of the graded photo, for blur-up and entrance layers. */
+  x64: number;
+  x1080: number;
+  /** For windowWidth x PixelRatio above 1300. */
+  x1600: number;
+  /** Size of the 1080 file; the other two files have the same aspect. */
+  width: number;
+  height: number;
+  /** Where the subject sits, as fractions of width and height (expo-image contentPosition). */
+  focal: {{ x: number; y: number }};
+  /** expo-image placeholder={{{{ thumbhash }}}} */
+  thumbhash: string;
+  alt: string;
+  /** Atmosphere only: hidden from screen readers where it is placed. */
+  decorative: boolean;
+  /** Shows a face or a body (hands alone do not count): never beside a member's name, greeting, avatar or own
+      values, nor the coach's name, and never with a caption. */
+  people: boolean;
+  credit: PhotoCredit;
+}};
+
+export const PHOTOS: Record<PhotoId, PhotoEntry> = {{
+{body}
+}};
+
+export const PHOTO_IDS = Object.keys(PHOTOS) as PhotoId[];
+"""
+    with open(OUT, 'w', encoding='utf-8') as f:
+        f.write(source)
+    return OUT
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        sys.exit(__doc__)
+    print(write())

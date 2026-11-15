@@ -1,0 +1,108 @@
+# Bioptime platform: the repository holds SOURCE only. Every rule without a leading
+# slash matches at any depth (apps/*, packages/*, tools/*, ...).
+
+# ---- dependencies ----
+node_modules/
+
+# ---- build output ----
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# ---- logs ----
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- environment files: only the documented examples are tracked ----
+.env
+.env.*
+!.env.example
+
+# ---- runtime data: SQLite databases and the API's data folder ----
+# apps/api/data holds the live database, uploaded assets (data/assets), private
+# client files (data/private) and generated reports (data/reports). The API
+# creates these folders on start, so none of it belongs in the repo.
+*.sqlite
+*.sqlite-*
+*.db
+apps/api/data/
+**/data/reports/
+
+# ---- local working state and generated outputs (whole folders) ----
+.local/
+artifacts/
+
+# ---- mobile app (apps/mobile) ----
+# android/ and ios/ are maintained BY HAND (never regenerated with expo prebuild),
+# so their source is tracked. Only native build output and machine-local files
+# are ignored (see also apps/mobile/android/.gitignore and apps/mobile/ios/.gitignore).
+.expo/
+.expo-shared/
+.metro*
+.cache/
+.kotlin/
+.gradle/
+.cxx/
+local.properties
+*.hprof
+Pods/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcarchive
+
+# ---- signing material: keystores, certificates, provisioning profiles ----
+*.keystore
+*.jks
+*.p12
+*.p8
+*.pem
+*.key
+*.mobileprovision
+*.cer
+*.der
+
+# ---- release binaries ----
+*.apk
+*.aab
+*.ipa
+
+# ---- test runs: outputs, screenshots, browser profiles ----
+test-results/
+test-output/
+playwright-report/
+screenshots/
+chrome-profile*/
+*-chrome-profile/
+
+# ---- Python caches (tools/) ----
+__pycache__/
+*.py[cod]
+
+# ---- OS / editor files ----
+.DS_Store
+.idea/
+# macOS custom folder icons: the file name is "Icon" followed by a carriage return
+Icon
+
+# ---- kept on disk, not published ----
+# docs/DECISIONS.md is the internal decision log; apps/mobile/LICENSE is the licence
+# file of the Expo app template (the project is published without a licence).
+/docs/DECISIONS.md
+/apps/mobile/LICENSE
+
+# ---- secret files: service configs, registry tokens, EAS credentials ----
+google-services.json
+GoogleService-Info.plist
+.npmrc
+/apps/mobile/credentials.json
+
+# ---- generated JavaScript bundles (release builds write them) ----
+index.android.bundle
+index.android.bundle.map
+*.jsbundle
+*.jsbundle.map

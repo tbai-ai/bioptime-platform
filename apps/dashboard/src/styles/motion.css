@@ -1,0 +1,24 @@
+/* The 3D and motion layer (src/motion, components/BrandMark3D.tsx; docs/PREMIUM_DIRECTION.md). Imported once, by
+   src/motion/index.ts. New, scoped class names only: nothing here restyles an existing selector, and every rule
+   styles a new layer that only ever moves with opacity (the workspace motion animates transform and opacity from
+   script and leaves no style behind). Where the layer is off these elements are not rendered at all; the
+   reduced-motion rule below also covers the setting changing mid-visit. */
+
+/* a scene canvas behind existing content: invisible until its first frame, then a short fade */
+.bpScene { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 420ms ease; contain: strict; }
+.bpScene[data-mode="live"] { opacity: 1; }
+.bpSceneCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* sign-in: full bleed behind the card (the frame isolates its stacking, so -1 sits above its background and the
+   existing backdrop, below the card); the motes thin out toward the small print at the foot */
+.bpScene-auth { -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 80%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0, #000 80%, transparent 100%); }
+
+/* header band: painted in tree order, after the band's own background and before its text, and faded out on the
+   text side so nothing sits behind the title at strength */
+.bpScene-band { z-index: auto; -webkit-mask-image: linear-gradient(to right, transparent 0, rgba(0, 0, 0, .22) 34%, #000 70%); mask-image: linear-gradient(to right, transparent 0, rgba(0, 0, 0, .22) 34%, #000 70%); }
+
+/* the close of a dialog: an inert copy of its last frame and of its backdrop, removed when it has faded */
+.bpmGhost { position: fixed; margin: 0; overflow: hidden; pointer-events: none; z-index: calc(var(--bp-z-modal) + 1); }
+.bpmGhostScrim { position: fixed; inset: 0; pointer-events: none; z-index: var(--bp-z-modal); background: var(--bp-color-surface-scrim); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+
+@media (prefers-reduced-motion: reduce) { .bpScene, .bpmGhost, .bpmGhostScrim { display: none; } }

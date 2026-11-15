@@ -1,0 +1,114 @@
+/* The coach workspace shell (src/shell/coach/CoachShell.tsx): the coach sidebar with groups and accordion
+   sections, the top bar with the global search and icons, and the command palette. Bioptime tokens only; every rule is
+   scoped to the coach shell (.shell.wz) or to new .wz* classes, so the member and admin shells are untouched. */
+
+/* ---------- sidebar ---------- */
+.shell.wz .wzSide { gap: 0; padding: 14px 10px 10px; }
+.shell.wz .wzBrand { position: relative; padding: 4px 10px 14px; }
+.wzLogo { display: inline-flex; align-self: flex-start; border-radius: 6px; }
+.wzLogo img { display: block; height: 22px; width: auto; }
+.wzDrawerClose { position: absolute; right: -2px; top: -4px; }
+.wzNav { flex: 1 0 auto; display: flex; flex-direction: column; gap: 4px; }
+.shell.wz .wzGroupLabel { margin: 12px 10px 6px; }
+.wzList, .wzSubList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.shell.wz .wzItem { position: relative; width: 100%; justify-content: flex-start; gap: 10px; padding: 8px 10px; border: 0; background: transparent; font: 500 14px/1.25 var(--bp-font-sans); text-align: left; cursor: pointer; color: var(--bp-color-text-secondary); transition: background-color var(--bp-duration-fast) var(--bp-ease-out), color var(--bp-duration-fast) var(--bp-ease-out); }
+.shell.wz .wzItem:hover { background: var(--bp-color-action-secondary); color: var(--bp-color-text-primary); }
+.shell.wz .wzItem svg { margin-right: 0; flex: none; }
+.shell.wz .wzItem:focus-visible { outline: 2px solid var(--bp-color-border-focus); outline-offset: -2px; }
+.wzItemLabel { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the current page: a tinted row with the accent bar on the left */
+.shell.wz .wzItem[aria-current="page"] { background: var(--bp-color-accent-dim); color: var(--bp-color-text-primary); }
+.shell.wz .wzItem[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 3px; background: var(--bp-color-brand-primary); }
+.shell.wz .wzSection.here > .wzSecBtn { color: var(--bp-color-text-primary); }
+.shell.wz .wzSection.here:not(.open) > .wzSecBtn { background: var(--bp-color-accent-dim); }
+.shell.wz .wzSection.here:not(.open) > .wzSecBtn::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 3px; background: var(--bp-color-brand-primary); }
+.shell.wz .wzSecBtn .bp-badge { margin-left: auto; }
+.wzChevron { flex: none; margin-left: auto; color: var(--bp-color-text-muted); transition: transform var(--bp-duration-base) var(--bp-ease-out); }
+.shell.wz .wzSecBtn .bp-badge + .wzChevron { margin-left: 4px; }
+.wzSection.open .wzChevron { transform: rotate(90deg); }
+
+/* accordion body: eases open and closed; out of the tab order and the accessibility tree while closed */
+.wzSub { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows var(--bp-duration-base) var(--bp-ease-out), visibility 0s linear var(--bp-duration-base); }
+.wzSub[data-open] { grid-template-rows: 1fr; visibility: visible; transition: grid-template-rows var(--bp-duration-base) var(--bp-ease-out), visibility 0s; }
+.wzSubList { min-height: 0; overflow: hidden; margin-left: 19px; padding-left: 8px; border-left: 1px solid var(--bp-color-border-default); }
+.wzSubList > li:first-child { margin-top: 2px; }
+.wzSubList > li:last-child { margin-bottom: 6px; }
+.shell.wz .wzSubItem { padding: 7px 10px; font-size: 13.5px; }
+
+/* footer: initials, name, Coach ID, sign-out */
+.shell.wz .side .wzWho { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 12px 4px 2px 8px; }
+.wzAvatar.avatarSm { width: 34px; height: 34px; font-size: 12.5px; border-width: 1px; }
+.wzWhoText { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.shell.wz .side .wzWho b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
+.wzWhoId { font-family: var(--bp-font-mono); font-size: 10.5px; letter-spacing: .06em; color: var(--bp-color-text-muted); white-space: nowrap; }
+.shell.wz .side .wzWho .wzWhoOut { flex: none; margin: 0; width: 36px; height: 36px; padding: 0; border-radius: 50%; color: var(--bp-color-text-muted); text-decoration: none; }
+.shell.wz .side .wzWho .wzWhoOut:hover { color: var(--bp-color-action-destructiveText); background: var(--bp-color-action-secondary); }
+.shell.wz .side .wzWho .wzWhoOut:focus-visible { outline: 2px solid var(--bp-color-border-focus); outline-offset: 2px; }
+
+/* ---------- top bar ---------- */
+.shell.wz .wzTopbar { gap: 8px; padding: 0 20px; }
+.shell.wz .wzTopbar .spacer { display: none; }
+.shell.wz .menuBtn { color: var(--bp-color-text-primary); }
+.wzSearch { flex: 0 1 480px; min-width: 40px; display: flex; align-items: center; gap: 10px; height: 38px; margin-inline: auto; padding: 0 6px 0 14px; border-radius: var(--bp-radius-pill); border: 1px solid var(--bp-color-border-strong); background: var(--bp-color-surface-inset); color: var(--bp-color-text-muted); font: 400 14px/1 var(--bp-font-sans); text-align: left; cursor: text; transition: border-color var(--bp-duration-fast), color var(--bp-duration-fast); }
+.wzSearch:hover { border-color: var(--bp-color-text-muted); color: var(--bp-color-text-secondary); }
+.wzSearch:focus-visible { outline: 2px solid var(--bp-color-border-focus); outline-offset: 2px; }
+.wzSearch svg { flex: none; }
+.wzSearchText { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wzKbd { flex: none; padding: 5px 8px; border-radius: 999px; border: 1px solid var(--bp-color-border-strong); background: var(--bp-color-surface-default); color: var(--bp-color-text-secondary); font: 500 11px/1 var(--bp-font-mono); }
+.wzTopIcons { flex: none; display: flex; align-items: center; gap: 4px; }
+.wzTopBtn { position: relative; }
+.wzTopBtn .wzTopBadge { position: absolute; top: 0; right: 0; }
+.wzTopSep { width: 1px; height: 24px; margin: 0 6px; background: var(--bp-color-border-strong); }
+.wzPower:hover { color: var(--bp-color-action-destructiveText); }
+
+/* skip link and the focusable page region */
+.wzSkip { position: absolute; left: 12px; top: -60px; z-index: var(--bp-z-tooltip); padding: 8px 14px; border-radius: var(--bp-radius-sm); border: 1px solid var(--bp-color-border-strong); background: var(--bp-color-surface-raised); color: var(--bp-color-text-primary); font-size: 14px; }
+.wzSkip:focus { top: 10px; }
+.shell.wz #main:focus { outline: none; }
+
+/* phone: the search is a short pill, the bell's list spans the screen */
+@media (max-width: 640px) {
+  .shell.wz .wzTopbar { gap: 2px; padding: 0 10px; }
+  .wzSearch { flex: 1 1 auto; height: 36px; margin: 0 6px 0 2px; padding: 0 12px; gap: 8px; }
+  .wzSearchText { font-size: 13px; }
+  .wzKbd { display: none; }
+  .wzTopSep { margin: 0 2px; }
+  .shell.wz .wzTopbar .wzBell .popover { position: fixed; left: 10px; right: 10px; top: 62px; width: auto; }
+}
+@media (max-width: 400px) { .wzSearchText { font-size: 0; } .wzSearchText::after { content: "Search"; font-size: 13px; } }
+
+/* ---------- command palette ---------- */
+.wzPalette { width: min(640px, calc(100vw - 32px)); max-height: min(72vh, 620px); margin: 12vh auto auto; padding: 0; overflow: hidden; border: 1px solid var(--bp-color-border-strong); border-radius: var(--bp-radius-lg); background: var(--bp-color-surface-raised); color: var(--bp-color-text-body); box-shadow: var(--bp-shadow-raised); }
+.wzPalette[open] { display: flex; flex-direction: column; }
+.wzPalette::backdrop { background: var(--bp-color-surface-scrim); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.wzPalette kbd { display: inline-block; min-width: 20px; padding: 3px 6px; border-radius: 5px; border: 1px solid var(--bp-color-border-strong); background: var(--bp-color-surface-default); color: var(--bp-color-text-secondary); font: 500 10.5px/1 var(--bp-font-mono); text-align: center; }
+.wzPaletteField { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--bp-color-border-default); color: var(--bp-color-text-muted); }
+.wzPaletteField:focus-within { box-shadow: inset 0 -2px 0 var(--bp-color-brand-primary); }
+.wzPaletteField input { flex: 1 1 auto; min-width: 0; height: 32px; padding: 0; border: 0; background: transparent; color: var(--bp-color-text-primary); font: 400 16px/1.2 var(--bp-font-sans); outline: none; }
+.wzPaletteField input::placeholder { color: var(--bp-color-text-muted); }
+.wzPaletteEsc { flex: none; padding: 4px; border: 0; border-radius: 6px; background: none; cursor: pointer; }
+.wzPaletteEsc:focus-visible { outline: 2px solid var(--bp-color-border-focus); }
+.wzPaletteList { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 4px 6px 8px; }
+.wzPaletteGroupTitle { padding: 12px 10px 6px; font: 500 10px/1 var(--bp-font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--bp-color-text-muted); }
+.wzPaletteOpt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--bp-radius-sm); color: var(--bp-color-text-secondary); cursor: pointer; }
+.wzPaletteOpt[aria-selected="true"] { background: var(--bp-color-accent-dim); color: var(--bp-color-text-primary); box-shadow: inset 3px 0 0 var(--bp-color-brand-primary); }
+.wzPaletteIcon { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--bp-color-border-default); background: var(--bp-color-surface-inset); }
+.wzPaletteText { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.wzPaletteLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; color: var(--bp-color-text-primary); }
+.wzPaletteHint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--bp-color-text-muted); }
+.wzPaletteEnter { flex: none; font-size: 13px; color: var(--bp-color-text-muted); }
+.wzPaletteNote { padding: 6px 10px 8px; font-size: 13px; color: var(--bp-color-text-muted); }
+.wzPaletteFoot { flex: none; display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--bp-color-border-default); font-size: 12px; color: var(--bp-color-text-muted); }
+.wzPaletteFoot kbd + kbd { margin-left: 3px; }
+.wzPaletteFoot kbd { margin-right: 4px; }
+@media (max-width: 640px) { .wzPalette { margin-top: 10px; max-height: calc(100dvh - 20px); } .wzPaletteFoot { display: none; } }
+
+/* ---------- reduced motion: everything here is still ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .wzSub, .wzSub[data-open], .wzChevron, .shell.wz .wzItem, .wzSearch { transition: none; }
+}
+
+/* sub-items in the open sections carry a small icon */
+.shell.wz .wzSubItem .wzSubIcon { flex: none; color: var(--bp-color-text-muted); }
+.shell.wz .wzSubItem:hover .wzSubIcon, .shell.wz .wzSubItem[aria-current="page"] .wzSubIcon { color: currentColor; }

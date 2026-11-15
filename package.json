@@ -1,0 +1,26 @@
+{
+  "name": "bioptime-platform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Bioptime platform monorepo: shared backend, coach and admin dashboard, member mobile app, shared domain and design system.",
+  "workspaces": [
+    "apps/api",
+    "apps/dashboard",
+    "packages/*"
+  ],
+  "scripts": {
+    "api": "npm run dev --workspace @bioptime/api",
+    "api:start": "npm run start --workspace @bioptime/api",
+    "api:test": "npm run test --workspace @bioptime/api",
+    "api:migrate": "npm run migrate --workspace @bioptime/api",
+    "api:seed": "npm run seed --workspace @bioptime/api",
+    "api:reset-demo": "npm run reset-demo --workspace @bioptime/api",
+    "dashboard": "npm run dev --workspace @bioptime/dashboard",
+    "dashboard:build": "npm run build --workspace @bioptime/dashboard",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22.16"
+  }
+}

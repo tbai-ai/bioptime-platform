@@ -1,0 +1,690 @@
+{
+  "about": "Bundled app photos: every one a real licensed photograph (Unsplash or Pexels free licence), graded with bioptime-grade v1. Masters live outside the repo; build with build_photos.py --masters DIR. Licence evidence (page, author, licence line, date) was recorded when each was downloaded.",
+  "downloaded": "2026-10-30",
+  "photos": [
+    {
+      "id": "ph-home-morning",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.55, 0.5],
+      "people": false,
+      "decorative": true,
+      "alt": "A misty city street at first light",
+      "credit": {
+        "source": "pexels",
+        "photoId": "29229921",
+        "author": "Qing Luo",
+        "authorUrl": "https://www.pexels.com/@luoqing/",
+        "url": "https://www.pexels.com/photo/misty-morning-urban-street-view-with-soft-light-29229921/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-home-afternoon",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.6, 0.5],
+      "people": false,
+      "decorative": true,
+      "alt": "An empty gym lit by tall windows",
+      "credit": {
+        "source": "pexels",
+        "photoId": "5942021",
+        "author": "Artem Podrez",
+        "authorUrl": "https://www.pexels.com/@artempodrez/",
+        "url": "https://www.pexels.com/photo/black-metal-stand-near-glass-window-5942021/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-home-evening",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.55, 0.5],
+      "people": false,
+      "decorative": true,
+      "alt": "A pair of dumbbells on a tiled floor in low light",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "FzNLKuqbv50",
+        "author": "Egor Myznik",
+        "authorUrl": "https://unsplash.com/@vonshnauzer",
+        "url": "https://unsplash.com/photos/a-pair-of-dumbbells-sitting-on-a-tiled-floor-FzNLKuqbv50",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-home-night",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.55, 0.5],
+      "people": false,
+      "decorative": true,
+      "alt": "An empty gym at night, benches and dumbbell racks under spotlights",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "1RNQ11ZODJM",
+        "author": "Ambitious Studio* | Rick Barrett",
+        "authorUrl": "https://unsplash.com/@weareambitious",
+        "url": "https://unsplash.com/photos/a-gym-filled-with-lots-of-machines-and-weights-1RNQ11ZODJM",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-train-strength",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.52, 0.6],
+      "people": true,
+      "decorative": true,
+      "alt": "A man setting up a barbell lift in a dim gym",
+      "credit": {
+        "source": "pexels",
+        "photoId": "19132573",
+        "author": "Hugazo Boss",
+        "authorUrl": "https://www.pexels.com/@hugazoboss/",
+        "url": "https://www.pexels.com/photo/a-man-working-out-at-a-gym-19132573/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-train-cardio",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.58, 0.55],
+      "people": true,
+      "decorative": true,
+      "alt": "A woman on a rowing machine in a dim gym",
+      "credit": {
+        "source": "pexels",
+        "photoId": "6389869",
+        "author": "Tima Miroshnichenko",
+        "authorUrl": "https://www.pexels.com/@tima-miroshnichenko/",
+        "url": "https://www.pexels.com/photo/woman-in-white-tank-top-sitting-on-black-exercise-equipment-6389869/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-train-flexibility",
+      "orientation": "landscape",
+      "class": "day",
+      "fade": "edge",
+      "focal": [0.7, 0.62],
+      "people": true,
+      "decorative": true,
+      "alt": "An older man kneeling on a mat in a bright room",
+      "credit": {
+        "source": "pexels",
+        "photoId": "7500129",
+        "author": "Mikhail Nilov",
+        "authorUrl": "https://www.pexels.com/@mikhail-nilov/",
+        "url": "https://www.pexels.com/photo/an-elderly-man-in-beige-t-shirt-and-black-pants-kneeling-on-floor-with-yoga-mat-7500129/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-train-hiit",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.42, 0.62],
+      "people": true,
+      "decorative": true,
+      "alt": "A woman holding a forearm plank on a mat in window light",
+      "credit": {
+        "source": "pexels",
+        "photoId": "6193704",
+        "author": "ROMAN ODINTSOV",
+        "authorUrl": "https://www.pexels.com/@roman-odintsov/",
+        "url": "https://www.pexels.com/photo/a-woman-doing-planking-6193704/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-train-yoga",
+      "orientation": "landscape",
+      "class": "day",
+      "fade": "edge",
+      "focal": [0.5, 0.66],
+      "people": true,
+      "decorative": true,
+      "alt": "A yoga backbend in silhouette beside a large window",
+      "credit": {
+        "source": "pexels",
+        "photoId": "10274371",
+        "author": "Trang Vi",
+        "authorUrl": "https://www.pexels.com/@trang-vi-57768998/",
+        "url": "https://www.pexels.com/photo/grayscale-photo-of-person-doing-yoga-10274371/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-train-mobility",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.55, 0.62],
+      "people": true,
+      "decorative": true,
+      "alt": "A woman holding a deep squat in a dark gym",
+      "credit": {
+        "source": "pexels",
+        "photoId": "4164465",
+        "author": "Ivan S",
+        "authorUrl": "https://www.pexels.com/@ivan-s/",
+        "url": "https://www.pexels.com/photo/man-in-gray-tank-top-doing-squats-4164465/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-programme-start",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.5, 0.45],
+      "people": true,
+      "decorative": true,
+      "alt": "A man crouched in a start position on a wooden floor under a single light",
+      "credit": {
+        "source": "pexels",
+        "photoId": "17956264",
+        "author": "Mohammad Ubaid",
+        "authorUrl": "https://www.pexels.com/@mohammad-ubaid-584981963/",
+        "url": "https://www.pexels.com/photo/kneeling-muscular-man-17956264/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-session-strength",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.58, 0.45],
+      "people": false,
+      "decorative": true,
+      "alt": "Chalked hands held open after a lift",
+      "credit": {
+        "source": "pexels",
+        "photoId": "8481198",
+        "author": "Sergey Meshkov",
+        "authorUrl": "https://www.pexels.com/@19x14/",
+        "url": "https://www.pexels.com/photo/photo-of-hands-with-white-paint-stains-8481198/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-session-hiit",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.62, 0.45],
+      "people": true,
+      "decorative": true,
+      "alt": "A box jump landing in a cloud of chalk dust",
+      "credit": {
+        "source": "pexels",
+        "photoId": "4761349",
+        "author": "cottonbro studio",
+        "authorUrl": "https://www.pexels.com/@cottonbro/",
+        "url": "https://www.pexels.com/photo/person-in-black-t-shirt-and-black-pants-4761349/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-session-cardio",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.5, 0.4],
+      "people": true,
+      "decorative": true,
+      "alt": "A runner in silhouette on a wet road at dusk",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "JnoNcfFwrNA",
+        "author": "lucas Favre",
+        "authorUrl": "https://unsplash.com/@we_are_rising",
+        "url": "https://unsplash.com/photos/silhouette-photo-of-a-person-running-on-road-JnoNcfFwrNA",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-session-boxing",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.62, 0.55],
+      "people": true,
+      "decorative": true,
+      "alt": "A boxer in silhouette at a heavy bag in a hazy gym",
+      "credit": {
+        "source": "pexels",
+        "photoId": "8736743",
+        "author": "Ron Lach",
+        "authorUrl": "https://www.pexels.com/@ron-lach/",
+        "url": "https://www.pexels.com/photo/silhouette-of-person-in-boxing-gym-8736743/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-session-ropes",
+      "orientation": "landscape",
+      "class": "day",
+      "fade": "none",
+      "focal": [0.52, 0.4],
+      "people": true,
+      "decorative": true,
+      "alt": "A man working battle ropes in a hazy gym",
+      "credit": {
+        "source": "pexels",
+        "photoId": "6389510",
+        "author": "Tima Miroshnichenko",
+        "authorUrl": "https://www.pexels.com/@tima-miroshnichenko/",
+        "url": "https://www.pexels.com/photo/man-working-out-in-a-gym-6389510/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-session-yoga",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.45, 0.55],
+      "people": true,
+      "decorative": true,
+      "alt": "A standing balance pose in silhouette against tall windows",
+      "credit": {
+        "source": "pexels",
+        "photoId": "8853910",
+        "author": "Los Muertos Crew",
+        "authorUrl": "https://www.pexels.com/@cristian-rojas/",
+        "url": "https://www.pexels.com/photo/man-bending-his-body-near-windows-8853910/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-session-breath",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.5, 0.55],
+      "people": true,
+      "decorative": true,
+      "alt": "A person sitting still in a dim room beside a window",
+      "credit": {
+        "source": "pexels",
+        "photoId": "35860537",
+        "author": "Ayan Rahman",
+        "authorUrl": "https://www.pexels.com/@ayan-rahman-2159200784/",
+        "url": "https://www.pexels.com/photo/silhouette-of-person-by-window-in-dimly-lit-room-35860537/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-bio-progress",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.65, 0.4],
+      "people": false,
+      "decorative": true,
+      "alt": "A hand writing in a notebook",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "3_Mogjm96GE",
+        "author": "Harmandeep Singh",
+        "authorUrl": "https://unsplash.com/@1harman1",
+        "url": "https://unsplash.com/photos/a-person-writing-on-a-notebook-with-a-pen-3_Mogjm96GE",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-life-walk",
+      "orientation": "landscape",
+      "class": "day",
+      "fade": "edge",
+      "focal": [0.6, 0.62],
+      "people": true,
+      "decorative": true,
+      "alt": "Two older people walking under autumn trees",
+      "credit": {
+        "source": "pexels",
+        "photoId": "18326821",
+        "author": "대정 김",
+        "authorUrl": "https://www.pexels.com/@daejeung/",
+        "url": "https://www.pexels.com/photo/elderly-woman-and-man-walking-among-trees-in-autumn-18326821/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-life-elders",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.5, 0.55],
+      "people": true,
+      "decorative": true,
+      "alt": "An older man doing incline push-ups against a table at home",
+      "credit": {
+        "source": "pexels",
+        "photoId": "6975789",
+        "author": "Mikhail Nilov",
+        "authorUrl": "https://www.pexels.com/@mikhail-nilov/",
+        "url": "https://www.pexels.com/photo/a-man-doing-push-ups-on-the-table-6975789/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-fuel-homecooking",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.7, 0.45],
+      "people": false,
+      "decorative": true,
+      "alt": "Hands taking spice from a steel masala tin over a pan",
+      "credit": {
+        "source": "pexels",
+        "photoId": "3531700",
+        "author": "Gagan Kaur",
+        "authorUrl": "https://www.pexels.com/@gagankaur/",
+        "url": "https://www.pexels.com/photo/a-woman-cooking-indian-food-3531700/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-fuel-plate",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.4, 0.5],
+      "people": false,
+      "decorative": true,
+      "alt": "A steel thali with home-cooked dishes and chapati",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "bKmSUcAGrvI",
+        "author": "fuseviews",
+        "authorUrl": "https://unsplash.com/@fusewiews",
+        "url": "https://unsplash.com/photos/a-metal-tray-topped-with-different-types-of-food-bKmSUcAGrvI",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-fuel-protein",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.5, 0.55],
+      "people": false,
+      "decorative": true,
+      "alt": "Halved boiled eggs on a dark tray",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "3VwmIANzmNQ",
+        "author": "Alexander Belov",
+        "authorUrl": "https://unsplash.com/@forgohill",
+        "url": "https://unsplash.com/photos/hard-boiled-eggs-are-sitting-on-a-tray-3VwmIANzmNQ",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-fuel-water",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.5, 0.48],
+      "people": false,
+      "decorative": true,
+      "alt": "A glass of water on a dark table",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "kBDYuXpXnOU",
+        "author": "Joseph Greve",
+        "authorUrl": "https://unsplash.com/@lime517",
+        "url": "https://unsplash.com/photos/clear-drinking-glass-on-brown-wooden-surface-kBDYuXpXnOU",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-coach-connection",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.55, 0.5],
+      "people": true,
+      "decorative": true,
+      "alt": "A coach steadying a man's back during a push-up on a mat outdoors",
+      "credit": {
+        "source": "pexels",
+        "photoId": "5038795",
+        "author": "Ketut Subiyanto",
+        "authorUrl": "https://www.pexels.com/@ketut-subiyanto/",
+        "url": "https://www.pexels.com/photo/woman-helping-man-with-outdoors-workout-5038795/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-coach-call",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.45, 0.45],
+      "people": true,
+      "decorative": true,
+      "alt": "A woman working on a laptop at a desk at home",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "UK78i6vK3sc",
+        "author": "Thought Catalog",
+        "authorUrl": "https://unsplash.com/@thoughtcatalog",
+        "url": "https://unsplash.com/photos/woman-sitting-beside-table-using-laptop-UK78i6vK3sc",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-tests-abstract",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.6, 0.4],
+      "people": false,
+      "decorative": true,
+      "alt": "Water droplets on a dark surface",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "hLcCvNsvN1A",
+        "author": "Julia Ly",
+        "authorUrl": "https://unsplash.com/@jujuly",
+        "url": "https://unsplash.com/photos/a-black-and-white-photo-of-rain-drops-on-a-window-hLcCvNsvN1A",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-tests-morning",
+      "orientation": "landscape",
+      "class": "day",
+      "fade": "none",
+      "focal": [0.5, 0.55],
+      "people": false,
+      "decorative": true,
+      "alt": "A glass of water on a wooden table in morning light",
+      "credit": {
+        "source": "pexels",
+        "photoId": "10994408",
+        "author": "Elena Golovchenko",
+        "authorUrl": "https://www.pexels.com/@elgolovchenko/",
+        "url": "https://www.pexels.com/photo/a-glass-of-water-on-a-table-10994408/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-tests-ripple",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.5, 0.55],
+      "people": false,
+      "decorative": true,
+      "alt": "A drop of water rippling on a dark surface",
+      "credit": {
+        "source": "pexels",
+        "photoId": "2071319",
+        "author": "Sergej Eckhardt",
+        "authorUrl": "https://www.pexels.com/@blackstarrxx/",
+        "url": "https://www.pexels.com/photo/timelapse-photography-of-body-of-water-2071319/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-tests-leaf",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.5, 0.5],
+      "people": false,
+      "decorative": true,
+      "alt": "Light along the veins of a dark leaf",
+      "credit": {
+        "source": "pexels",
+        "photoId": "37949642",
+        "author": "Norbert Szomszéd",
+        "authorUrl": "https://www.pexels.com/@norbert-szomszed-2157011681/",
+        "url": "https://www.pexels.com/photo/close-up-of-leaf-veins-with-contrast-lighting-37949642/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-store-foundation",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.6, 0.6],
+      "people": true,
+      "decorative": true,
+      "alt": "A man doing a push-up in a sunlit room",
+      "credit": {
+        "source": "pexels",
+        "photoId": "7680649",
+        "author": "Mikhail Nilov",
+        "authorUrl": "https://www.pexels.com/@mikhail-nilov/",
+        "url": "https://www.pexels.com/photo/man-doing-push-ups-7680649/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-store-build",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.5, 0.5],
+      "people": true,
+      "decorative": true,
+      "alt": "A woman gripping a barbell before a lift",
+      "credit": {
+        "source": "pexels",
+        "photoId": "4373472",
+        "author": "Jake \"Sulli\" Swoyer",
+        "authorUrl": "https://www.pexels.com/@jakeswoyermedia/",
+        "url": "https://www.pexels.com/photo/woman-lifting-a-barbell-4373472/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-store-restore",
+      "orientation": "landscape",
+      "class": "day",
+      "fade": "edge",
+      "focal": [0.55, 0.5],
+      "people": true,
+      "decorative": true,
+      "alt": "A person resting in child's pose on a mat in a dim room",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "ow-_-s-Jb5k",
+        "author": "Dina Badamshina",
+        "authorUrl": "https://unsplash.com/@dinaamazing",
+        "url": "https://unsplash.com/photos/a-person-laying-on-the-floor-in-a-room-ow-_-s-Jb5k",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-store-balance",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.45, 0.75],
+      "people": true,
+      "decorative": true,
+      "alt": "A man in a gentle back bend on a mat in a quiet room with window light",
+      "credit": {
+        "source": "pexels",
+        "photoId": "6648591",
+        "author": "Ivan S",
+        "authorUrl": "https://www.pexels.com/@ivan-s/",
+        "url": "https://www.pexels.com/photo/a-man-meditating-inside-a-studio-6648591/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-profile-achieve",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.5, 0.5],
+      "people": false,
+      "decorative": true,
+      "alt": "Dumbbells, a skipping rope and a towel on a wooden floor",
+      "credit": {
+        "source": "unsplash",
+        "photoId": "60xqDdncSKY",
+        "author": "Stavros Papadimitriou",
+        "authorUrl": "https://unsplash.com/@stevep93",
+        "url": "https://unsplash.com/photos/a-pair-of-dumbbells-a-towel-and-a-pair-of-dumbbells-60xqDdncSKY",
+        "licence": "Unsplash License"
+      }
+    },
+    {
+      "id": "ph-signin-backdrop",
+      "orientation": "portrait",
+      "class": "dark",
+      "fade": "edge",
+      "focal": [0.4, 0.4],
+      "people": false,
+      "decorative": true,
+      "alt": "A rack of barbells in a dark gym",
+      "credit": {
+        "source": "pexels",
+        "photoId": "6389856",
+        "author": "Tima Miroshnichenko",
+        "authorUrl": "https://www.pexels.com/@tima-miroshnichenko/",
+        "url": "https://www.pexels.com/photo/people-dark-rope-sport-6389856/",
+        "licence": "Pexels License"
+      }
+    },
+    {
+      "id": "ph-empty-calm",
+      "orientation": "landscape",
+      "class": "dark",
+      "fade": "none",
+      "focal": [0.72, 0.55],
+      "people": false,
+      "decorative": true,
+      "alt": "A water bottle and a rolled mat on the floor",
+      "credit": {
+        "source": "pexels",
+        "photoId": "4793328",
+        "author": "Anete Lusina",
+        "authorUrl": "https://www.pexels.com/@anete-lusina/",
+        "url": "https://www.pexels.com/photo/rolled-yoga-mat-and-bottle-of-water-in-sunlight-4793328/",
+        "licence": "Pexels License"
+      }
+    }
+  ]
+}

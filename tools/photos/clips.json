@@ -1,0 +1,39 @@
+{
+  "about": "Exercise clips that passed the M1 clip review (30 Oct 2026; P4/media/clips/REVIEW.md). Each is named for what it shows; trimStart and trimEnd cut away an opening or a stretch that is unsafe or glitched; posterAt moves the poster where the middle frame does not show the exercise. Clips that failed are listed under dropped and are never transcoded, imported or mapped: their exercises stay text only. build_clips.py turns this into the folder media:import-exercises reads.",
+  "rights": "Clips from the owner's earlier Fitterify app (generated video); rights confirmed by the owner on 30 Oct 2026; to be replaced with filmed clips.",
+  "source": "Fitterify APK (Jun 18), assets/public/videos/{file}; generated video, passed the M1 clip review on 30 Oct 2026",
+  "clips": [
+    {"key": "barbell-back-squat", "file": "squats.mp4", "name": "Barbell Back Squat", "category": "strength", "trimStart": 1.8},
+    {"key": "pull-up", "file": "pullups.mp4", "name": "Pull-Up", "category": "strength"},
+    {"key": "incline-dumbbell-press", "file": "bench-press.mp4", "name": "Incline Dumbbell Press", "category": "strength"},
+    {"key": "dumbbell-shoulder-press", "file": "shoulder-press.mp4", "name": "Dumbbell Shoulder Press", "category": "strength"},
+    {"key": "bodyweight-lunge", "file": "lunges.mp4", "name": "Bodyweight Lunge", "category": "strength", "posterAt": 0.3},
+    {"key": "sled-push", "file": "sled-push.mp4", "name": "Sled Push", "category": "conditioning"},
+    {"key": "box-jump", "file": "box-jumps.mp4", "name": "Box Jump", "category": "conditioning", "posterAt": 0.66},
+    {"key": "burpee", "file": "hiit-cardio.mp4", "name": "Burpee", "category": "conditioning"},
+    {"key": "jump-rope", "file": "jump-rope.mp4", "name": "Jump Rope", "category": "conditioning"},
+    {"key": "medicine-ball-slam", "file": "medball-slams.mp4", "name": "Medicine Ball Slam", "category": "conditioning"},
+    {"key": "mountain-climber", "file": "mountain-climbers.mp4", "name": "Mountain Climber", "category": "conditioning", "trimEnd": 2.9},
+    {"key": "rowing-machine", "file": "rowing-machine.mp4", "name": "Rowing Machine", "category": "conditioning"},
+    {"key": "indoor-cycling", "file": "spin-cycling.mp4", "name": "Indoor Cycling", "category": "conditioning"},
+    {"key": "forearm-plank", "file": "core-plank.mp4", "name": "Forearm Plank", "category": "core"},
+    {"key": "russian-twist", "file": "russian-twists.mp4", "name": "Russian Twist", "category": "core"},
+    {"key": "reformer-reverse-plank", "file": "pilates.mp4", "name": "Reformer Reverse Plank", "category": "core"},
+    {"key": "standing-yoga-flow", "file": "yoga-flow.mp4", "name": "Standing Yoga Flow", "category": "mobility"},
+    {"key": "seated-forward-fold", "file": "mobility-stretch.mp4", "name": "Seated Forward Fold", "category": "mobility"}
+  ],
+  "dropped": [
+    {"file": "battle-ropes.mp4", "reason": "Ropes form closed hoops in mid-air (impossible), radial spray bursts; Fitterify also used it for Kettlebell Swings"},
+    {"file": "bentover-rows.mp4", "reason": "Only about 1 s shows a row; the rest is a non-standard bent-over raise; a third dumbbell appears"},
+    {"file": "cable-fly.mp4", "reason": "Not a cable fly (arms open from the chest inside one narrow tower); cables appear and disappear"},
+    {"file": "deadlifts.mp4", "reason": "Not a deadlift: the bar is pulled from the floor to the chest with the arms and back down"},
+    {"file": "lat-pulldown.mp4", "reason": "Not a lat pulldown: standing at a cable tower with an asymmetric hook-shaped bar"},
+    {"file": "leg-press.mp4", "reason": "No leg press is performed: the sled never moves, the arms row handles"},
+    {"file": "boxing-heavybag.mp4", "reason": "Impossible impacts: particle spray and a crater that stays in the bag after the glove leaves"},
+    {"file": "treadmill-run.mp4", "reason": "The runner's feet land beyond the back of the belt (unsafe); pseudo-logo on the upright"},
+    {"file": "pushups.mp4", "reason": "Head-first push-up (neck dropped, elbows flared) and a stream of liquid from the mouth"},
+    {"file": "step-ups.mp4", "reason": "Never steps up: the foot rests on the box and returns"},
+    {"file": "strength-upper.mp4", "reason": "Partial range only: the dumbbells stop at head height, no complete rep"},
+    {"file": "trx-training.mp4", "reason": "No suspension exercise: the straps are never loaded, the arms swing"}
+  ]
+}

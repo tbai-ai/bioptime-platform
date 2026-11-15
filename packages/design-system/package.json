@@ -1,0 +1,8 @@
+{
+  "name": "@bioptime/design-system",
+  "private": true,
+  "version": "2.2.0",
+  "description": "Bioptime design tokens and component styles, copied from the brand book (brand/book) by tools/sync-design-system.sh; do not edit here.",
+  "files": ["tokens.css", "components.css"],
+  "exports": { "./tokens.css": "./tokens.css", "./components.css": "./components.css" }
+}

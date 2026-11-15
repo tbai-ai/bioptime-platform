@@ -1,0 +1,18 @@
+/* Support module (M4): new class names only; no existing selector is restyled. Values come from the brand tokens. */
+.supArticle { font-size: 14px; line-height: 1.6; color: var(--bp-color-text-body); max-width: 72ch; }
+.supArticle p, .supArticle ul, .supArticle ol { margin: 0 0 10px; }
+.supArticle ul, .supArticle ol { padding-left: 20px; }
+.supArticle h3 { margin: 14px 0 6px; }
+.supArticle a { color: var(--bp-color-text-link); }
+.supBubble { white-space: pre-wrap; overflow-wrap: anywhere; }
+.supList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.supList li { padding: 10px 0; border-bottom: 1px solid var(--bp-color-border-default); }
+.supList li:last-child { border-bottom: 0; }
+.supList a { display: block; color: inherit; text-decoration: none; }
+.supList a:hover b, .supList a:focus-visible b { text-decoration: underline; }
+.supCheck { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.supCheck li { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 6px 12px; padding: 8px 0; border-bottom: 1px solid var(--bp-color-border-default); }
+.supCheck li:last-child { border-bottom: 0; }
+.supCheck li > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
+.supCsv { font-family: var(--bp-font-mono); font-size: 12px; }
+.supNowrap { white-space: nowrap; }

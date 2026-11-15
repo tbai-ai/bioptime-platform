@@ -1,0 +1,42 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+  <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+  <uses-permission android:name="android.permission.INTERNET"/>
+  <uses-permission android:name="android.permission.VIBRATE"/>
+  <!-- Permissions the client app never uses, removed from the merged manifest (app.json android.blockedPermissions):
+       photos come from the system photo picker, files go through the app's cache and the share sheet, there is no camera,
+       biometric or install-referrer use, and the overlay permission is the development menu's (debug manifests only). -->
+  <uses-permission android:name="android.permission.CAMERA" tools:node="remove"/>
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove"/>
+  <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove"/>
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" tools:node="remove"/>
+  <uses-permission android:name="android.permission.USE_BIOMETRIC" tools:node="remove"/>
+  <uses-permission android:name="android.permission.USE_FINGERPRINT" tools:node="remove"/>
+  <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" tools:node="remove"/>
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.VIEW"/>
+      <category android:name="android.intent.category.BROWSABLE"/>
+      <data android:scheme="https"/>
+    </intent>
+  </queries>
+  <!-- usesCleartextTraffic comes from android/app/build.gradle (bioptimeCleartext): on for tester builds that talk to
+       http test servers, off for a store build. The debug manifests keep it on for the development server. -->
+  <!-- supportsRtl is off: the app is English-only, so it always lays out left to right, also when the phone's (or the
+       app's own) language reads right to left (Arabic, Urdu, Hebrew, Persian). React Native's I18nUtil.isRTL is false
+       without it, and MainApplication also turns React Native's RTL preference off. -->
+  <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="true" android:theme="@style/AppTheme" android:supportsRtl="false" android:enableOnBackInvokedCallback="false" android:usesCleartextTraffic="${bioptimeCleartext}" android:fullBackupContent="@xml/secure_store_backup_rules" android:dataExtractionRules="@xml/secure_store_data_extraction_rules">
+    <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode|smallestScreenSize|assetsPaths" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="bioptime"/>
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

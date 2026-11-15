@@ -1,0 +1,24 @@
+/* M9 Message attachments and announcements: new class names only; no existing selector is restyled. Values come from
+   the brand tokens. */
+.msgFiles { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%; }
+.msg.mine .msgFiles { justify-content: flex-end; }
+.msgFile { display: inline-flex; align-items: stretch; max-width: 100%; border: 1px solid var(--bp-color-border-default); border-radius: var(--bp-radius-md); background: var(--bp-color-surface-default); overflow: hidden; }
+.msgFileOpen { display: inline-flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 10px; border: 0; background: transparent; color: var(--bp-color-text-primary); font: inherit; font-size: 13px; text-align: left; }
+button.msgFileOpen { cursor: pointer; }
+button.msgFileOpen:hover .msgFileName, button.msgFileOpen:focus-visible .msgFileName { text-decoration: underline; }
+.msgFileKind { font-family: var(--bp-font-mono); font-size: 10px; letter-spacing: 0.04em; color: var(--bp-color-text-muted); }
+.msgFileName { min-width: 0; max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msgFileSize { font-family: var(--bp-font-mono); font-size: 10px; color: var(--bp-color-text-muted); white-space: nowrap; }
+.msgFileRemove { border: 0; border-left: 1px solid var(--bp-color-border-default); background: transparent; color: var(--bp-color-text-muted); padding: 0 10px; font: inherit; cursor: pointer; }
+.msgFileRemove:hover, .msgFileRemove:focus-visible { color: var(--bp-color-text-primary); }
+.msgFileRemove:disabled { cursor: default; opacity: 0.5; }
+.msgAttachBar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.msgAttachInput { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.annBody { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.6; color: var(--bp-color-text-body); max-width: 72ch; }
+.annList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.annList > li { display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-bottom: 1px solid var(--bp-color-border-default); }
+.annList > li:first-child { padding-top: 0; }
+.annList > li:last-child { border-bottom: 0; padding-bottom: 0; }
+.annMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; color: var(--bp-color-text-muted); }
+.annTitle { margin: 0; font-size: 15px; color: var(--bp-color-text-primary); }

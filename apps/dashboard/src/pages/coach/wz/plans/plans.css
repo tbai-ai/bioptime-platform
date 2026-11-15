@@ -1,0 +1,65 @@
+/* Coach workspace: the plan pages (Workouts, Sessions, Meal plans, Appointments overview).
+   Built only from the --bp-* tokens of packages/design-system; no colours, fonts or images of their own. The grid, the
+   tiles, the chips and the header are the shared pieces of ../ui.tsx (styles/coach-wz.css); this file adds the plan
+   card, the filter bar, the pager and the appointments layout. The page wrapper is a size container, so these follow
+   the width the page really has beside the sidebar. */
+
+.wzp { container-type: inline-size; container-name: wzp; min-width: 0; }
+
+/* the filter bar under the text tabs */
+.wzp-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 14px; }
+.wzp-filters .wzp-count { margin-right: auto; font-size: 14px; color: var(--bp-color-text-secondary); }
+.wzp-filters .wzp-count b { color: var(--bp-color-text-primary); font-variant-numeric: tabular-nums; }
+.wzp-filters select, .wzp-filters input { width: auto; min-width: 150px; max-width: 220px; }
+
+/* a plan card: badges over a cover area, the name, tag chips, a line of what it holds and the primary action */
+.wzp-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px; border-radius: var(--bp-card-radius-product); background: var(--bp-color-surface-default); border: 1px solid var(--bp-color-border-default); box-shadow: var(--bp-shadow-highlight), var(--bp-shadow-card); color: var(--bp-color-text-body); }
+.wzp-card:hover { border-color: var(--bp-color-border-strong); }
+.wzp-cover { position: relative; display: flex; align-items: center; justify-content: center; height: 88px; border-radius: var(--bp-radius-md); background: var(--bp-color-surface-inset); border: 1px solid var(--bp-color-border-default); color: var(--bp-color-text-muted); }
+.wzp-cover svg { width: 34px; height: 34px; opacity: .8; }
+.wzp-cover .wzp-badge { position: absolute; top: 8px; }
+.wzp-cover .wzp-badge-start { left: 8px; }
+.wzp-cover .wzp-badge-end { right: 8px; }
+.wzp-cover .wzp-corner { position: absolute; top: 8px; right: 8px; }
+.wzp-badge { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--bp-radius-pill); border: 1px solid var(--bp-color-border-strong); background: var(--bp-color-surface-default); font-family: var(--bp-font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--bp-color-text-secondary); white-space: nowrap; }
+.wzp-badge-accent { color: var(--bp-color-accent-text); border-color: var(--bp-color-border-accent); background: var(--bp-color-accent-dim); }
+.wzp-card h3 { margin: 0; font-size: 15px; line-height: 1.35; letter-spacing: -.01em; color: var(--bp-color-text-primary); overflow-wrap: anywhere; }
+.wzp-card h3 a { color: inherit; text-decoration: none; }
+.wzp-card h3 a:hover { text-decoration: underline; }
+.wzp-card .wzp-desc { margin: 0; font-size: 13px; line-height: 1.5; color: var(--bp-color-text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wzp-card .wzp-meta { margin: 0; font-size: 13px; color: var(--bp-color-text-secondary); }
+.wzp-card .wzp-meta b { color: var(--bp-color-text-primary); font-variant-numeric: tabular-nums; }
+.wzp-card .wzp-meta svg { vertical-align: -2px; }
+.wzp-card .wzp-foot { margin-top: auto; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.wzp-card .wzp-foot .bp-btn-primary { flex: 1 1 auto; }
+.wzp-tags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 22px; }
+.wzp-tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--bp-radius-pill); background: var(--bp-color-surface-inset); border: 1px solid var(--bp-color-border-default); font-size: 12px; color: var(--bp-color-text-secondary); white-space: nowrap; }
+
+/* pagination under a grid */
+.wzp-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; font-size: 13px; color: var(--bp-color-text-secondary); }
+.wzp-pager .num { color: var(--bp-color-text-primary); }
+
+/* Appointments overview: the table card beside the notifications card; on a phone each appointment is a small block */
+.wzp-split { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
+@container wzp (max-width: 980px) { .wzp-split { grid-template-columns: minmax(0, 1fr); } }
+.wzp-chips { margin-bottom: 12px; }
+.wzp-who b { color: var(--bp-color-text-primary); }
+.wzp-actions-cell { display: flex; flex-wrap: wrap; gap: 6px; }
+@container wzp (max-width: 620px) {
+  .wzp-apptable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .wzp-apptable table, .wzp-apptable tbody, .wzp-apptable tr, .wzp-apptable td { display: block; width: 100%; }
+  .wzp-apptable tr { padding: 10px 0; border-bottom: 1px solid var(--bp-color-border-default); }
+  .wzp-apptable tr:last-child { border-bottom: 0; }
+  .wzp-apptable td { padding: 3px 12px; border: 0; }
+  .wzp-apptable td[data-label]:not(.wzp-who)::before { content: attr(data-label); display: block; font-family: var(--bp-font-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--bp-color-text-muted); margin: 4px 0 2px; }
+}
+
+/* the assign dialog: the training-day boxes wrap; the result */
+.wzp-days { display: flex; flex-wrap: wrap; gap: 8px 14px; border: 0; padding: 0; margin: 0; }
+.wzp-done { display: flex; flex-direction: column; gap: 10px; }
+
+/* the phone: the filter controls share the width */
+@container wzp (max-width: 560px) {
+  .wzp-filters select, .wzp-filters input { flex: 1 1 140px; max-width: none; min-width: 0; }
+  .wzp-filters .wzp-count { flex-basis: 100%; }
+}

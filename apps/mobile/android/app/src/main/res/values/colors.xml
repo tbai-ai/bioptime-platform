@@ -1,0 +1,16 @@
+<resources>
+  <color name="splashscreen_background">#000000</color>
+  <!-- the launcher icon's ground: the brand book's approved app icon (the symbol on navy, brand/kit/icons/app-icon-1024.png) -->
+  <color name="iconBackground">#0B1120</color>
+  <!-- brand red, fx.red.brand in src/theme.ts: the text cursor and handles -->
+  <color name="colorPrimary">#EE3324</color>
+  <color name="colorAccent">#EE3324</color>
+  <!-- fx.red.vivid, the red the app's own text buttons use on dark: the native dialogs' buttons (Alert on Android),
+       14sp caps on dialogSurface at 4.62:1 (WCAG AA 4.5:1; brand red there is 4.26:1) -->
+  <color name="dialogAction">#EF4444</color>
+  <!-- fx.bg.elevated: the native dialogs' surface (dark, as the app always is) -->
+  <color name="dialogSurface">#1A1A1A</color>
+  <!-- fx.ink.white: the dialogs' title -->
+  <color name="dialogTitle">#FFFFFF</color>
+  <color name="activityBackground">#000000</color>
+</resources>
