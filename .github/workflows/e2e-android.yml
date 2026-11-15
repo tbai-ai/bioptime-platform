@@ -50,9 +50,10 @@ jobs:
         uses: ./.github/actions/android-release-apk
         with:
           architectures: x86_64
-          api-base: ''
+          # the emulator's address for the runner, where the job starts the demo API (http keeps cleartext on)
+          api-base: 'http://10.0.2.2:3000'
           apk-name: bioptime-e2e-x86_64
-          summary-title: E2E APK (x86_64, no built-in server, signed with this run's throwaway debug key)
+          summary-title: E2E APK (x86_64, server http://10.0.2.2:3000 built in, signed with this run's throwaway debug key)
 
       - uses: actions/upload-artifact@v7
         with:
@@ -179,8 +180,9 @@ jobs:
           mv "$(dirname "$(dirname "$bin")")" "$RUNNER_TEMP/maestro"
           "$RUNNER_TEMP/maestro/bin/maestro" --version
 
-      # API level 36 is the app's targetSdk (react-native/gradle/libs.versions.toml); its google_apis x86_64 image runs
-      # natively under KVM. Animations off (the app's reduced-motion path); the flows wait for the pages anyway.
+      # API level 35: the API 36 image overloaded the runner (Maestro's on-device driver died while reading the screen on
+      # the first run). The app (minSdk 24, targetSdk 36) runs the same on 35, and 35 also keeps the tablet's portrait
+      # lock. google_apis x86_64 runs natively under KVM. Animations off (the app's reduced-motion path).
       - name: Run the flows on the ${{ matrix.device }} emulator
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
@@ -188,11 +190,11 @@ jobs:
           E2E_OUT: ${{ runner.temp }}/e2e
           E2E_MAESTRO: ${{ runner.temp }}/maestro/bin/maestro
         with:
-          api-level: 36
+          api-level: 35
           target: google_apis
           arch: x86_64
           profile: ${{ matrix.profile }}
-          cores: 3
+          cores: 4
           ram-size: 4096M
           disk-size: 6000M
           emulator-boot-timeout: 900

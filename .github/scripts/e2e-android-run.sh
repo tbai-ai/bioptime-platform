@@ -37,12 +37,13 @@ fi
 
 "$E2E_MAESTRO" --version
 status=0
-"$E2E_MAESTRO" test apps/mobile/.maestro \
+# a hard limit: on the first run the emulator died and Maestro never exited, so the job hung until its own timeout
+timeout --signal=TERM --kill-after=60 40m "$E2E_MAESTRO" test apps/mobile/.maestro \
   --format junit \
   --output "$E2E_OUT/junit.xml" \
   --test-output-dir "$E2E_OUT/maestro" || status=$?
 
 # the app's JavaScript log and crashes, for a failed run (a demo app against a scratch server: nothing private)
-adb logcat -d -v time 'ReactNativeJS:V' 'ReactNative:V' 'AndroidRuntime:E' '*:S' > "$E2E_OUT/logcat.txt" 2>&1 || true
+timeout 60 adb logcat -d -v time 'ReactNativeJS:V' 'ReactNative:V' 'AndroidRuntime:E' '*:S' > "$E2E_OUT/logcat.txt" 2>&1 || true
 
 exit "$status"

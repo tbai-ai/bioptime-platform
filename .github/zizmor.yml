@@ -9,3 +9,9 @@ rules:
         # every other action (gradle/actions, reactivecircus/android-emulator-runner) is pinned by full commit SHA with
         # its version in a comment; local actions use the `./.github/actions/...` form
         "*": hash-pin
+  # zizmor suggests GitHub's newer `$/` self-repository form for local actions; the workflows keep `./`, which is
+  # proven on this repository's runners (the Android build passed with it). Style only, not a security finding.
+  self-repository:
+    ignore:
+      - android.yml
+      - e2e-android.yml

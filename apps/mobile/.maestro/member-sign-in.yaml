@@ -24,7 +24,16 @@ env:
   MEMBER_NAME: "Ananya Rao"
 ---
 - runFlow: subflows/launch-signed-out.yaml
-- runFlow: subflows/set-server.yaml
+# The e2e APK has the CI API (http://10.0.2.2:3000) built in, and only that API offers the open preview: when the card
+# shows, the app is already talking to it. Otherwise point it there first, so the seed password only reaches the CI API.
+- extendedWaitUntil:
+    visible: "Continue without signing in"
+    timeout: 15000
+    optional: true
+- runFlow:
+    when:
+      notVisible: "Continue without signing in"
+    file: subflows/set-server.yaml
 
 # --- sign in (the preview card sits above the form, so on a short screen the form starts lower down)
 # The demo turns phone sign-in on, so the Email | Phone switch above the form says "Email" too. Centring whichever
