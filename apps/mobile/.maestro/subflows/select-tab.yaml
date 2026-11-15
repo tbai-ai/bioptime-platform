@@ -1,0 +1,29 @@
+# Chooses one tab of the floating pill and waits until the pill shows it chosen.
+#   LABEL: the tab's accessibility label as a regex (src/fx/nav/tabs.ts TABS[].label; the bar is icon-only, so the
+#          label is the tab's name: Home, Train, Bio, Life, Fuel, Coach, Tests, Store, Profile. Coach reads
+#          "Coach, new messages" while messages wait: src/fx/nav/PillTabBar.tsx NavItem)
+#   FROM:  a tab that is in view now; the pill is dragged from it when LABEL is not on screen
+# On a phone the nine 56 pt tabs (568 pt) do not fit the pill, which scrolls sideways; a chosen tab is scrolled to the
+# middle, so the next one is normally in view already. Off-screen tabs are not in the view hierarchy Maestro reads, so
+# `notVisible` is true for them. The drag stays inside the pill (it never reaches the page pager's pan).
+appId: com.bioptime.app
+---
+- runFlow:
+    when:
+      notVisible:
+        text: "${LABEL}"
+    commands:
+      - swipe:
+          from:
+            text: "${FROM}"
+          direction: LEFT
+          duration: 800
+      - waitForAnimationToEnd:
+          timeout: 3000
+- tapOn:
+    text: "${LABEL}"
+- extendedWaitUntil:
+    visible:
+      text: "${LABEL}"
+      selected: true
+    timeout: 30000

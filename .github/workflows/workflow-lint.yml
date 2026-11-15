@@ -1,0 +1,55 @@
+# Security lint of the GitHub Actions workflows and the local action, with zizmor. See .github/CI.md.
+# zizmor is a pinned, hash-checked wheel from PyPI installed into a throwaway virtual environment (no third-party
+# action). Findings are printed as GitHub annotations and any finding fails the job.
+name: Workflow lint
+
+on:
+  push:
+    paths:
+      - '.github/**'
+  pull_request:
+    paths:
+      - '.github/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflow-lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ZIZMOR_VERSION: 1.32.0
+      # sha256 of zizmor-1.32.0-py3-none-manylinux_2_28_x86_64.whl, as PyPI lists it
+      ZIZMOR_SHA256: 84a6acb975accc13408786a2bd274b572537ca19c933ebbc13e78f3988562071
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install zizmor ${{ env.ZIZMOR_VERSION }}
+        run: |
+          python3 -m venv "$RUNNER_TEMP/zizmor"
+          printf 'zizmor==%s --hash=sha256:%s\n' "$ZIZMOR_VERSION" "$ZIZMOR_SHA256" > "$RUNNER_TEMP/zizmor-requirements.txt"
+          "$RUNNER_TEMP/zizmor/bin/pip" install --quiet --disable-pip-version-check --no-deps --only-binary :all: \
+            --require-hashes -r "$RUNNER_TEMP/zizmor-requirements.txt"
+          "$RUNNER_TEMP/zizmor/bin/zizmor" --version
+
+      # `.` is the checkout's root: zizmor collects .github/workflows/*.yml and the action under .github/actions.
+      # The job's read-only token turns on the online audits (impostor commits, known-vulnerable actions, version
+      # comments that do not match their pinned SHA); it is used only to read public data from the GitHub API.
+      - name: Audit the workflows and actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          "$RUNNER_TEMP/zizmor/bin/zizmor" --format=github --config .github/zizmor.yml .

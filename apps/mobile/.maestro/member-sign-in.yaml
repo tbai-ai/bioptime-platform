@@ -1,0 +1,141 @@
+# A seeded member signs in with email and password, opens Profile, and signs out from Profile > Settings.
+# Run by .github/workflows/e2e-android.yml; see .github/CI.md.
+# The account is a public demo seed value (apps/api/src/seed/seed.ts: MEMBERS[0] and DEMO_PASSWORDS.member), and the
+# flow always points the app at http://10.0.2.2:3000 first (subflows/set-server.yaml), so those values only ever go
+# to the scratch demo API the CI job starts itself, never to a server built into the APK.
+# Selectors:
+#   - "Email", "Password": the inputs' accessibility labels (src/app/(auth)/sign-in.tsx Field label="Email" /
+#     label="Password"; src/fx/Field.tsx gives an input its Field's label)
+#   - Enter in the password input submits (sign-in.tsx: onSubmitEditing={go}); "Sign in" below the password input is
+#     the button (the title above the form says "Sign in" too)
+#   - id "home", id "profile": the TabScreen testIDs of Home and Profile; "Ananya Rao": the Profile header's name
+#   - "Life", "Profile": tab accessibility labels (src/fx/nav/tabs.ts)
+#   - "Reports", "Settings": Profile's sub-tabs (src/screens/profile/data.ts SUBS; src/fx/PillTabs.tsx labels them)
+#   - "Sign out": the button at the end of Settings (src/screens/profile/Settings.tsx), then the same title on the
+#     confirmation sheet (src/fx/ConfirmHost.tsx), found inside the sheet next to its message "Saved copies of your
+#     data on this phone are removed."
+appId: com.bioptime.app
+name: Member - sign in, Profile, sign out
+tags:
+  - auth
+env:
+  MEMBER_EMAIL: "ananya.rao@demo.bioptime.test"
+  MEMBER_PASS: "Demo-Member-2026!"
+  MEMBER_NAME: "Ananya Rao"
+---
+- runFlow: subflows/launch-signed-out.yaml
+- runFlow: subflows/set-server.yaml
+
+# --- sign in (the preview card sits above the form, so on a short screen the form starts lower down)
+# The demo turns phone sign-in on, so the Email | Phone switch above the form says "Email" too. Centring whichever
+# "Email" is found first brings the input on screen as well; the tap then takes the input, since Maestro prefers a
+# clickable match (the switch's "Email" match is its label text, which is not clickable)
+- scrollUntilVisible:
+    element:
+      text: "Email"
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+- tapOn: "Email"
+- inputText: "${MEMBER_EMAIL}"
+# Enter leaves the email input (no onSubmitEditing there), which puts the keyboard away
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      text: "Password"
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+- tapOn: "Password"
+- inputText: "${MEMBER_PASS}"
+- pressKey: Enter
+# Enter normally submits. Give that sign-in time to reach Home before looking for the button, so the fallback never
+# races a sign-in already under way: while it runs, the button reads "Sign in, busy" and hides its title (no match),
+# and once Home has replaced the screen there is no button at all
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 30000
+    optional: true
+# still on the form after that (Enter did not submit): the button below the password does. Optional, so a sign-in that
+# finishes between the check and the tap cannot fail the flow
+- runFlow:
+    when:
+      visible:
+        text: "Sign in"
+        below:
+          text: "Password"
+    commands:
+      - tapOn:
+          text: "Sign in"
+          below:
+            text: "Password"
+          optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      text: "Home"
+      selected: true
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: member-1-home
+
+# --- Profile (on a phone it is past the right end of the pill: drag the pill from Life first)
+- runFlow:
+    file: subflows/select-tab.yaml
+    env:
+      LABEL: "Profile"
+      FROM: "Life"
+- extendedWaitUntil:
+    visible:
+      id: "profile"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "${MEMBER_NAME}"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: member-2-profile
+
+# --- Settings is the last sub-tab; on a phone it starts past the row's right edge, so the row is dragged first (the
+# row keeps its own drags: the pages do not move)
+- swipe:
+    from:
+      text: "Reports"
+    direction: LEFT
+    duration: 800
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible:
+      text: "Settings"
+      selected: true
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      text: "Sign out"
+    direction: DOWN
+    centerElement: true
+    timeout: 60000
+- takeScreenshot: member-3-settings
+- tapOn: "Sign out"
+
+# --- the confirmation sheet
+- extendedWaitUntil:
+    visible: "Saved copies of your data on this phone are removed."
+    timeout: 30000
+- tapOn:
+    text: "Sign out"
+    childOf:
+      containsChild:
+        text: "Saved copies of your data on this phone are removed."
+# back on the client sign-in (Settings.tsx: router.replace('/(auth)/sign-in'))
+- extendedWaitUntil:
+    visible: "Sign in|Continue without signing in|Email"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: member-4-signed-out

@@ -1,0 +1,18 @@
+# Starts the client app from nothing (data cleared, so no session, no server typed under Server) and waits for the
+# client sign-in. The launch sting holds at most 9 s (src/app/index.tsx), and a CI emulator draws in software, so the
+# wait is long.
+# Any one of these marks the sign-in (src/app/(auth)/sign-in.tsx); which of them are on screen depends on the screen's
+# height and on whether a server answered:
+#   - "Sign in": the screen's title (AuthScreen title="Sign in") and its button
+#   - "Continue without signing in": the preview card's button (src/flow/auth/PreviewCard.tsx), when a server offers it
+#   - "Email": the email input's accessibility label (src/fx/Field.tsx: an input takes its Field's label)
+#   - "Change the server address (testers)": the footer link, present while SERVER_OVERRIDE_ALLOWED
+appId: com.bioptime.app
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Sign in|Continue without signing in|Email|Change the server address.*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 5000

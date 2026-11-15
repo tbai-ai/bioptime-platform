@@ -1,0 +1,181 @@
+# The client app's release APK, built the way the local tester build is: a TESTER build signed with a throwaway debug
+# key. Shared by .github/workflows/android.yml (the tester APK) and .github/workflows/e2e-android.yml (the x86_64 APK
+# the emulator tests install). See .github/CI.md.
+# The caller checks the repository out first (actions/checkout with persist-credentials: false) and calls this action
+# with `uses: ./.github/actions/android-release-apk` (a local action, resolved from the checked-out repository).
+# This repository is public: anyone signed in to GitHub can download what the callers upload, so nothing private goes
+# in. In particular no link-relay topic is passed (the relay variables are set empty below on purpose).
+name: Android release APK
+description: Builds apps/mobile's release APK the way the tester build does and checks that it carries its JavaScript bundle.
+
+inputs:
+  api-base:
+    description: >-
+      EXPO_PUBLIC_API_BASE compiled into the app. It is public (it ships inside the APK), so it is never a secret.
+      Empty: no built-in server; testers enter one under Me > Server.
+    required: false
+    default: ''
+  architectures:
+    description: >-
+      ABIs for -PreactNativeArchitectures, comma-separated (e.g. x86_64 for an emulator). Empty: the ones in
+      apps/mobile/android/gradle.properties (arm64-v8a and armeabi-v7a).
+    required: false
+    default: ''
+  apk-name:
+    description: File name of the copied APK, before the short commit and the extension.
+    required: false
+    default: bioptime-android-release
+  summary-title:
+    description: Heading of the APK's section in the job summary.
+    required: false
+    default: Android tester APK (signed with this run's throwaway debug key)
+  ndk-version:
+    description: >-
+      The NDK the local release build uses (Expo's root project plugin reads it from
+      react-native/gradle/libs.versions.toml). The runner image ships NDK 27.3/29/30 only, so it is installed here.
+    required: false
+    default: 27.1.12297006
+  cmake-version:
+    description: The CMake the local release build uses (the image ships 3.31/4.1 only, so it is installed here).
+    required: false
+    default: 3.22.1
+
+outputs:
+  apk-path:
+    description: Absolute path of the copied APK (under RUNNER_TEMP).
+    value: ${{ steps.apk.outputs.path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check the native project is in the repository
+      shell: bash
+      run: |
+        if [ ! -f apps/mobile/android/gradlew ] || [ ! -f apps/mobile/android/app/build.gradle ]; then
+          echo "::error::apps/mobile/android is not in the repository (is it still listed in .gitignore?). It is kept by hand and is never generated, so it must be committed."
+          exit 1
+        fi
+        # macOS custom-icon files ('Icon' + carriage return) break the build with a META-INF/Icon duplicate
+        n=$(find apps/mobile -name $'Icon\r' -not -path '*/node_modules/*' | wc -l | tr -d ' ')
+        if [ "$n" != "0" ]; then
+          echo "::error::$n macOS 'Icon\\r' files are committed under apps/mobile; add Icon? to .gitignore and remove them from the index."
+          exit 1
+        fi
+
+    # A release build (NDK, Gradle caches, native intermediates of every library) needs well over 10 GB.
+    # Remove large toolchains this job never uses; the Android SDK, Java and Node are left alone.
+    - name: Free disk space
+      shell: bash
+      run: |
+        df -h / | tail -1
+        sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/share/swift /opt/hostedtoolcache/CodeQL
+        df -h / | tail -1
+
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    # Checks the repository's own android/gradle/wrapper/gradle-wrapper.jar against Gradle's published checksums.
+    # It runs before `npm ci`, so it never sees the wrapper jars some packages ship inside node_modules.
+    - uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+    - uses: actions/setup-node@v7
+      with:
+        node-version: '24'
+        cache: npm
+        cache-dependency-path: apps/mobile/package-lock.json
+
+    # Gradle's settings and app build call node to find react-native, Expo autolinking, hermesc and codegen in
+    # apps/mobile/node_modules, so the packages must be installed before Gradle runs.
+    - name: Install the app's npm packages
+      shell: bash
+      working-directory: apps/mobile
+      run: npm ci --no-audit --no-fund
+
+    # After `npm ci` on purpose: the basic provider keys its cache on every **/*.gradle* file, so the libraries'
+    # build files in node_modules are part of the key and a dependency update writes a fresh cache. The wrapper was
+    # validated above, so the node_modules wrapper jars are not checked again here. Only main writes the cache.
+    - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      with:
+        # the open-source (MIT) cache provider, a thin wrapper over actions/cache
+        cache-provider: basic
+        cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+        validate-wrappers: false
+
+    - name: Install NDK ${{ inputs.ndk-version }} and CMake ${{ inputs.cmake-version }}
+      shell: bash
+      env:
+        NDK_VERSION: ${{ inputs.ndk-version }}
+        CMAKE_VERSION: ${{ inputs.cmake-version }}
+      run: |
+        log="$RUNNER_TEMP/sdkmanager.log"
+        # (echo, not `yes`: under pipefail `yes` would end with SIGPIPE and fail the step; the image has the SDK
+        # licences accepted already, the "y" only answers a prompt if one ever appears)
+        if ! echo y | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}" "cmake;${CMAKE_VERSION}" > "$log" 2>&1; then
+          tail -40 "$log"
+          exit 1
+        fi
+        for d in "ndk/${NDK_VERSION}" "cmake/${CMAKE_VERSION}"; do
+          if [ ! -d "$ANDROID_HOME/$d" ]; then echo "::error::$ANDROID_HOME/$d is missing after sdkmanager"; tail -40 "$log"; exit 1; fi
+        done
+
+    # app/build.gradle signs a release without the Bioptime upload key with android/app/debug.keystore, which is not
+    # in the repository (*.keystore is ignored). Make a standard, throwaway debug key on the runner only when the file
+    # is missing. It lives only for this job and is never cached or uploaded, so EVERY CI run has a different
+    # signature (and none matches an APK built on the Mac): uninstall the app before installing another build.
+    - name: Make a throwaway debug key if none is present
+      shell: bash
+      run: |
+        if [ ! -f apps/mobile/android/app/debug.keystore ]; then
+          keytool -genkeypair -keystore apps/mobile/android/app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US' -noprompt
+        fi
+
+    - name: Build the release APK
+      shell: bash
+      working-directory: apps/mobile/android
+      env:
+        # the same build-time values as the local tester build, minus the private link relay
+        EXPO_PUBLIC_ALLOW_SERVER_OVERRIDE: '1'
+        EXPO_PUBLIC_STAFF_APP: '0'
+        EXPO_PUBLIC_LINK_RELAY_TOPIC: ''
+        EXPO_PUBLIC_LINK_RELAY_BASE: ''
+        EXPO_NO_TELEMETRY: '1'
+        BIOPTIME_API_BASE: ${{ inputs.api-base }}
+        RN_ARCHITECTURES: ${{ inputs.architectures }}
+        NDK_VERSION: ${{ inputs.ndk-version }}
+      run: |
+        if [ -n "${BIOPTIME_API_BASE}" ]; then export EXPO_PUBLIC_API_BASE="${BIOPTIME_API_BASE}"; fi
+        # the image points these at its default NDK (27.3); make them agree with android.ndkVersion
+        export ANDROID_NDK="${ANDROID_HOME}/ndk/${NDK_VERSION}"
+        export ANDROID_NDK_HOME="${ANDROID_NDK}" ANDROID_NDK_ROOT="${ANDROID_NDK}"
+        args=(--no-daemon --stacktrace)
+        if [ -n "${RN_ARCHITECTURES}" ]; then args+=("-PreactNativeArchitectures=${RN_ARCHITECTURES}"); fi
+        chmod +x ./gradlew
+        ./gradlew "${args[@]}" assembleRelease
+
+    - name: Name the APK and record its checksum
+      id: apk
+      shell: bash
+      env:
+        APK_NAME: ${{ inputs.apk-name }}
+        SUMMARY_TITLE: ${{ inputs.summary-title }}
+      run: |
+        apk=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+        # a release build must carry the Hermes bundle; without it the app would look for a Metro server at launch
+        # (the listing goes to a file first: `unzip | grep -q` can end with SIGPIPE, which pipefail would report)
+        unzip -l "$apk" > "$RUNNER_TEMP/apk-contents.txt"
+        if ! grep -q ' assets/index\.android\.bundle$' "$RUNNER_TEMP/apk-contents.txt"; then
+          echo "::error::app-release.apk has no assets/index.android.bundle (the JavaScript bundle task did not run)"
+          exit 1
+        fi
+        out="$RUNNER_TEMP/${APK_NAME}-${GITHUB_SHA::7}.apk"
+        cp "$apk" "$out"
+        echo "path=$out" >> "$GITHUB_OUTPUT"
+        {
+          echo "### ${SUMMARY_TITLE}"
+          echo '```'
+          ls -l "$out" | awk '{print $5, $NF}'
+          sha256sum "$out"
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,40 @@
+# From a cold, cleared start to Home through the open preview ("Continue without signing in": one POST
+# /auth/open-preview for the member workspace, no password), the way a tester without an account goes in.
+# The app only offers the preview while its server does (GET /api/public/config -> openPreview; the API runs with
+# OPEN_PREVIEW=1). A build with no server built in (the CI build: no EXPO_PUBLIC_API_BASE) offers nothing until an
+# address is typed under Server, so the server is set first when the card has not appeared.
+# Selectors:
+#   - "Continue without signing in": the preview card's button title (src/flow/auth/PreviewCard.tsx; src/fx/Button.tsx
+#     makes the title the accessibility label)
+#   - id "home": testID of Home's TabScreen (src/screens/home/HomeScreen.tsx, both the loading and the loaded page;
+#     React Native turns a testID into the Android resource-id)
+#   - id "home-bell": the notifications button in Home's header (src/screens/home/HomeHeader.tsx)
+#   - "Home" + selected: the pill's first tab (src/fx/nav/tabs.ts label 'Home', the tab's accessibility label;
+#     src/fx/nav/PillTabBar.tsx NavItem sets accessibilityState.selected on the chosen tab)
+appId: com.bioptime.app
+---
+- runFlow: launch-signed-out.yaml
+# a build with a server built in shows the card once that server's settings have been read
+- extendedWaitUntil:
+    visible: "Continue without signing in"
+    timeout: 10000
+    optional: true
+- runFlow:
+    when:
+      notVisible: "Continue without signing in"
+    file: set-server.yaml
+- extendedWaitUntil:
+    visible: "Continue without signing in"
+    timeout: 60000
+- tapOn: "Continue without signing in"
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      text: "Home"
+      selected: true
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000

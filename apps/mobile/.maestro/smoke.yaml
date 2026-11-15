@@ -1,0 +1,12 @@
+# Smoke: a cleared app reaches Home through the open preview (setting the server first when none is built in) and
+# Home draws its page, its header and the pill. Run by .github/workflows/e2e-android.yml; see .github/CI.md.
+# Selectors are listed in subflows/open-preview.yaml.
+appId: com.bioptime.app
+name: Smoke - open preview to Home
+tags:
+  - smoke
+---
+- runFlow: subflows/open-preview.yaml
+- assertVisible:
+    id: "home-bell"
+- takeScreenshot: smoke-home

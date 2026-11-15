@@ -1,0 +1,60 @@
+# From the client sign-in: opens the testers' Server screen, points the app at http://10.0.2.2:3000 (the Android
+# emulator's address for its host, where e2e-android.yml runs the demo API) and goes back to the sign-in.
+# Selectors:
+#   - "Change the server address (testers)": src/app/(auth)/sign-in.tsx, the footer Link (a regex here, since the
+#     brackets are regex syntax)
+#   - "Address": the address input's accessibility label (src/app/settings/server.tsx FxField label="Address";
+#     src/fx/Field.tsx gives an input its Field's label)
+#   - "Use this address", "Back to sign-in": button titles in src/app/settings/server.tsx (src/fx/Button.tsx makes the
+#     title the accessibility label)
+#   - "Now using ...": the notice useServerForm().apply shows once the address answered (src/app/settings/server.tsx)
+appId: com.bioptime.app
+---
+- scrollUntilVisible:
+    element:
+      text: "Change the server address.*"
+    direction: DOWN
+    timeout: 30000
+- tapOn: "Change the server address.*"
+# "In use": the first row of the screen's summary card (src/app/settings/server.tsx ServerFx rows)
+- extendedWaitUntil:
+    visible: "In use"
+    timeout: 30000
+# The field's visible label ("ADDRESS"; Maestro matches text without regard to case) sits just above the input and
+# can come into view first: centring the match brings the input on screen too, and the tap then takes the input,
+# since Maestro prefers a clickable match over the label
+- scrollUntilVisible:
+    element:
+      text: "Address"
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+- tapOn: "Address"
+# a build with a server built in shows that address in the field
+- eraseText: 200
+- inputText: "http://10.0.2.2:3000"
+# Enter blurs the one-line input (it has no onSubmitEditing), which also puts the keyboard away
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      text: "Use this address"
+    direction: DOWN
+    timeout: 30000
+- tapOn: "Use this address"
+# apply() signs the device out, saves the address and reads GET /api/public/config there. The notice above the button
+# then says "Now using <address>. ..." (an address that did not answer gets "... could not be reached" instead), and
+# "Back to sign-in" appears under the footnote
+- extendedWaitUntil:
+    visible: "Now using .*"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      text: "Back to sign-in"
+    direction: DOWN
+    timeout: 30000
+- tapOn: "Back to sign-in"
+- extendedWaitUntil:
+    visible: "Sign in|Continue without signing in|Email"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000

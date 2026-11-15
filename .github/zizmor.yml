@@ -1,0 +1,11 @@
+# zizmor configuration (.github/workflows/workflow-lint.yml passes it with --config). See .github/CI.md.
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # GitHub's own actions stay on their major tag (the convention in .github/CI.md); since zizmor 1.20 the default
+        # asks for a commit SHA on every action, so this is stated here
+        "actions/*": ref-pin
+        # every other action (gradle/actions, reactivecircus/android-emulator-runner) is pinned by full commit SHA with
+        # its version in a comment; local actions use the `./.github/actions/...` form
+        "*": hash-pin

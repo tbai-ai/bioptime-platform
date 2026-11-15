@@ -1,6 +1,7 @@
 # Release APK of the client app (a TESTER build signed with a throwaway debug key). See .github/CI.md.
 # This repository is public: anyone signed in to GitHub can download the artifact, so nothing private goes into it.
-# In particular no link-relay topic is passed (the relay variables are set empty below on purpose).
+# In particular no link-relay topic is passed (the build action sets the relay variables empty on purpose).
+# The build steps live in .github/actions/android-release-apk, which e2e-android.yml shares.
 name: Android APK
 
 on:
@@ -8,7 +9,10 @@ on:
     branches: [main]
     paths:
       - 'apps/mobile/**'
+      # the Maestro flows are not part of the app (e2e-android.yml runs them)
+      - '!apps/mobile/.maestro/**'
       - '.github/workflows/android.yml'
+      - '.github/actions/android-release-apk/**'
   workflow_dispatch:
 
 permissions:
@@ -18,149 +22,29 @@ concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    # bash -eo pipefail: a failing command anywhere in a pipeline fails the step
-    shell: bash
-
 jobs:
   assemble-release:
     name: assembleRelease
     runs-on: ubuntu-24.04
     timeout-minutes: 90
-    env:
-      # The versions the local release build uses (Expo's root project plugin reads them from
-      # react-native/gradle/libs.versions.toml: ndkVersion 27.1.12297006, compileSdk 37, buildTools 37.0.0).
-      # The runner image ships NDK 27.3/29/30 and CMake 3.31/4.1 only, so these two are installed below.
-      NDK_VERSION: 27.1.12297006
-      CMAKE_VERSION: 3.22.1
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - name: Check the native project is in the repository
-        run: |
-          if [ ! -f apps/mobile/android/gradlew ] || [ ! -f apps/mobile/android/app/build.gradle ]; then
-            echo "::error::apps/mobile/android is not in the repository (is it still listed in .gitignore?). It is kept by hand and is never generated, so it must be committed."
-            exit 1
-          fi
-          # macOS custom-icon files ('Icon' + carriage return) break the build with a META-INF/Icon duplicate
-          n=$(find apps/mobile -name $'Icon\r' -not -path '*/node_modules/*' | wc -l | tr -d ' ')
-          if [ "$n" != "0" ]; then
-            echo "::error::$n macOS 'Icon\\r' files are committed under apps/mobile; add Icon? to .gitignore and remove them from the index."
-            exit 1
-          fi
-
-      # A release build of two ABIs (NDK, Gradle caches, native intermediates of every library) needs well over 10 GB.
-      # Remove large toolchains this job never uses; the Android SDK, Java and Node are left alone.
-      - name: Free disk space
-        run: |
-          df -h / | tail -1
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/share/swift /opt/hostedtoolcache/CodeQL
-          df -h / | tail -1
-
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      # Checks the repository's own android/gradle/wrapper/gradle-wrapper.jar against Gradle's published checksums.
-      # It runs before `npm ci`, so it never sees the wrapper jars some packages ship inside node_modules.
-      - uses: gradle/actions/wrapper-validation@v6
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: apps/mobile/package-lock.json
-
-      # Gradle's settings and app build call node to find react-native, Expo autolinking, hermesc and codegen in
-      # apps/mobile/node_modules, so the packages must be installed before Gradle runs.
-      - name: Install the app's npm packages
-        working-directory: apps/mobile
-        run: npm ci --no-audit --no-fund
-
-      # After `npm ci` on purpose: the basic provider keys its cache on every **/*.gradle* file, so the libraries'
-      # build files in node_modules are part of the key and a dependency update writes a fresh cache. The wrapper was
-      # validated above, so the node_modules wrapper jars are not checked again here.
-      - uses: gradle/actions/setup-gradle@v6
-        with:
-          # the open-source (MIT) cache provider, a thin wrapper over actions/cache
-          cache-provider: basic
-          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
-          validate-wrappers: false
-
-      - name: Install NDK ${{ env.NDK_VERSION }} and CMake ${{ env.CMAKE_VERSION }}
-        run: |
-          log="$RUNNER_TEMP/sdkmanager.log"
-          # (echo, not `yes`: under pipefail `yes` would end with SIGPIPE and fail the step; the image has the SDK
-          # licences accepted already, the "y" only answers a prompt if one ever appears)
-          if ! echo y | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}" "cmake;${CMAKE_VERSION}" > "$log" 2>&1; then
-            tail -40 "$log"
-            exit 1
-          fi
-          for d in "ndk/${NDK_VERSION}" "cmake/${CMAKE_VERSION}"; do
-            if [ ! -d "$ANDROID_HOME/$d" ]; then echo "::error::$ANDROID_HOME/$d is missing after sdkmanager"; tail -40 "$log"; exit 1; fi
-          done
-          # the image points these at its default NDK (27.3); make them agree with android.ndkVersion
-          for v in ANDROID_NDK ANDROID_NDK_HOME ANDROID_NDK_ROOT; do
-            echo "${v}=${ANDROID_HOME}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
-          done
-
-      # app/build.gradle signs a release without the Bioptime upload key with android/app/debug.keystore, which is not
-      # in the repository (*.keystore is ignored). Make a standard, throwaway debug key on the runner only when the file
-      # is missing. It lives only for this job and is never cached or uploaded, so EVERY CI run has a different
-      # signature (and none matches an APK built on the Mac): uninstall the app before installing another build.
-      - name: Make a throwaway debug key if none is present
-        run: |
-          if [ ! -f apps/mobile/android/app/debug.keystore ]; then
-            keytool -genkeypair -keystore apps/mobile/android/app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US' -noprompt
-          fi
-
+      # Local action from this repository (checked out in the step above).
       - name: Build the release APK
-        working-directory: apps/mobile/android
-        env:
-          # the same build-time values as the local tester build, minus the private link relay
-          EXPO_PUBLIC_ALLOW_SERVER_OVERRIDE: '1'
-          EXPO_PUBLIC_STAFF_APP: '0'
-          EXPO_PUBLIC_LINK_RELAY_TOPIC: ''
-          EXPO_PUBLIC_LINK_RELAY_BASE: ''
+        id: build
+        uses: ./.github/actions/android-release-apk
+        with:
           # optional repository variable (Settings > Secrets and variables > Actions > Variables); it is compiled
-          # into the app, so it is never a secret
-          BIOPTIME_API_BASE: ${{ vars.BIOPTIME_API_BASE }}
-          EXPO_NO_TELEMETRY: '1'
-        run: |
-          if [ -n "${BIOPTIME_API_BASE}" ]; then export EXPO_PUBLIC_API_BASE="${BIOPTIME_API_BASE}"; fi
-          chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace assembleRelease
-
-      - name: Name the APK and record its checksum
-        id: apk
-        run: |
-          apk=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
-          # a release build must carry the Hermes bundle; without it the app would look for a Metro server at launch
-          # (the listing goes to a file first: `unzip | grep -q` can end with SIGPIPE, which pipefail would report)
-          unzip -l "$apk" > "$RUNNER_TEMP/apk-contents.txt"
-          if ! grep -q ' assets/index\.android\.bundle$' "$RUNNER_TEMP/apk-contents.txt"; then
-            echo "::error::app-release.apk has no assets/index.android.bundle (the JavaScript bundle task did not run)"
-            exit 1
-          fi
-          out="$RUNNER_TEMP/bioptime-android-release-${GITHUB_SHA::7}.apk"
-          cp "$apk" "$out"
-          echo "path=$out" >> "$GITHUB_OUTPUT"
-          {
-            echo "### Android tester APK (signed with this run's throwaway debug key)"
-            echo '```'
-            ls -l "$out" | awk '{print $5, $NF}'
-            sha256sum "$out"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          # into the app, so it is never a secret. Empty: no built-in server (testers enter one under Me > Server).
+          api-base: ${{ vars.BIOPTIME_API_BASE }}
 
       - uses: actions/upload-artifact@v7
         with:
           name: bioptime-android-release-${{ github.run_number }}
-          path: ${{ steps.apk.outputs.path }}
+          path: ${{ steps.build.outputs.apk-path }}
           if-no-files-found: error
           retention-days: 14
           # a re-run of this job replaces the artifact of the earlier attempt instead of failing on the name

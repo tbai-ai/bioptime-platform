@@ -1,13 +1,28 @@
 # CI workflows
 
-Four GitHub Actions workflows live in `.github/workflows/`. Each action is pinned to its current major version (checked
-15 Nov 2026): checkout v7, setup-node v7, setup-java v6, upload-artifact v7, cache v6, and gradle/actions v6
-(wrapper-validation and setup-gradle). gitleaks is not an action: it runs as a pinned, checksum-verified release binary
-(8.30.1). Node is 24 (the Mac has 24.22) and Java is Temurin 21 (the Mac's release build uses Temurin 21.0.12).
+Six GitHub Actions workflows live in `.github/workflows/`, and one local composite action in
+`.github/actions/android-release-apk/` (the Android build that `android.yml` and `e2e-android.yml` share).
+
+How actions are pinned (checked 15 Nov 2026):
+- **GitHub's own actions** stay on their current major version: checkout v7, setup-node v7, setup-java v6,
+  upload-artifact v7, download-artifact v8, cache v6.
+- **Every other action** is pinned by its full commit SHA, with the version in a comment: gradle/actions v6.4.1
+  (wrapper-validation and setup-gradle, `8da46b5…`) and reactivecircus/android-emulator-runner v2.38.0 (`a421e43…`).
+  To update one, look up the tag's commit (`https://api.github.com/repos/<owner>/<repo>/git/ref/tags/<tag>`, then
+  `/git/tags/<sha>` when the tag is annotated) and change the SHA and the comment together.
+- **The local action** is called as `uses: ./.github/actions/android-release-apk`, which GitHub resolves from the
+  repository checked out in the step before (actions/checkout runs first in every job that uses it).
+- **Tools that are not actions** run as pinned, checksum-verified downloads: gitleaks 8.30.1, Maestro 2.12.1 and
+  zizmor 1.32.0.
+
+Node is 24 (the Mac has 24.22) and Java is Temurin 21 (the Mac's release build uses Temurin 21.0.12).
 
 This repository is public. Anyone signed in to GitHub can read the logs and download the artifacts, so the
 workflows never use a private value. **The link-relay topic is never passed**: both relay variables are set to empty
-on purpose. Every workflow has only `contents: read` permission and checks out without keeping the token.
+on purpose. Every workflow has only `contents: read` permission and checks out without keeping the token. No workflow
+uses `pull_request_target`, and no `${{ }}` expression is written into a `run:` script (values reach scripts through
+`env:`). A pull request cannot poison the caches `main` uses: GitHub scopes a cache entry to the branch or pull request
+that wrote it (only `main`'s entries are shared with the others), and setup-gradle writes its cache only on `main`.
 
 ## ci.yml: typecheck, tests, dashboard build
 
@@ -36,9 +51,11 @@ These checks are not in CI:
 
 ## android.yml: tester APK
 
-This workflow builds the Android tester APK.
-- **When it runs:** on a push to `main` that changes `apps/mobile/**` or this workflow file, and by hand (Actions >
-  Android APK > Run workflow).
+This workflow builds the Android tester APK. Its build steps are in the composite action
+`.github/actions/android-release-apk` (shared with `e2e-android.yml`); the workflow checks out, calls the action and
+uploads the APK.
+- **When it runs:** on a push to `main` that changes `apps/mobile/**` (except the Maestro flows in
+  `apps/mobile/.maestro/`), this workflow file or the build action, and by hand (Actions > Android APK > Run workflow).
 - **Toolchain:** Ubuntu 24.04, Temurin 21 and Node 24. It installs NDK 27.1.12297006 and CMake 3.22.1, the same
   versions the Mac uses (the runner image ships NDK 27.3/29/30 and CMake 3.31/4.1 only). It first deletes a few large
   toolchains the job never uses (.NET, GHC, Boost, Swift, CodeQL) to leave room for the native build.
@@ -62,7 +79,8 @@ This workflow builds the Android tester APK.
 ## ios.yml: unsigned .ipa
 
 This workflow builds an **UNSIGNED** iOS archive.
-- **When it runs:** on a push to `main` that changes `apps/mobile/**` or this workflow file, and by hand.
+- **When it runs:** on a push to `main` that changes `apps/mobile/**` (except the Maestro flows in
+  `apps/mobile/.maestro/`) or this workflow file, and by hand.
 - **Runner and Xcode:** the `xcode-27` runner, which runs macOS 27 on arm64 and is a public-preview image in
   actions/runner-images. The workflow selects **Xcode 27.2 (27B52)**, the same build as the Mac, through
   `DEVELOPER_DIR`. The image's default Xcode is 27.1, which the workflow falls back to (with a warning) only if 27.2
@@ -103,6 +121,75 @@ runs `gitleaks git --redact` with `.github/gitleaks.toml`.
   un-publish it. Only then add the finding's fingerprint (printed in the log) to a root `.gitleaksignore`.
 - **To update gitleaks:** change `GITLEAKS_VERSION` and `GITLEAKS_SHA256` together, taking the hash for
   `gitleaks_<version>_linux_x64.tar.gz` from that release's `gitleaks_<version>_checksums.txt`.
+
+## e2e-android.yml: Maestro flows on Android emulators
+
+This workflow runs the client app's end-to-end flows (`apps/mobile/.maestro/`) with Maestro on a phone and a tablet
+emulator, against a scratch demo API that each job starts on its own runner.
+- **When it runs:** on a push to `main` that changes `apps/mobile/**` (the flows included), `apps/api/**`,
+  `packages/**`, the root `package-lock.json`, this workflow, the build action or `.github/scripts/e2e-android-run.sh`,
+  and by hand.
+- **Build job:** the build action with `architectures: x86_64` and no `api-base`. The tester APK carries only the ARM
+  ABIs of `gradle.properties`, which an x86_64 emulator does not run natively, so this APK is built for x86_64 only.
+  It has no built-in server (as a tester APK without `BIOPTIME_API_BASE`), so the flows type the API's address under
+  Server. Same build-time values and the same throwaway debug key as the tester APK. Uploaded as `bioptime-e2e-apk`
+  for 3 days.
+- **Test jobs:** `phone` (AVD profile `pixel_7`) and `tablet` (`pixel_tablet`; `pixel_c` is the older tablet profile),
+  in parallel, each at most 75 minutes. Each job:
+  - enables KVM (the udev rule from the emulator runner's README), sets up Java 21 and Node 24, and runs `npm ci` at
+    the root;
+  - starts the demo API: `npm run api:reset-demo` (deletes, migrates and seeds a fresh database under the runner's
+    temp folder), then `npm run api:start` in the background, with `BIOPTIME_MODE=demo`, `OPEN_PREVIEW=1`,
+    `HOST=127.0.0.1` and `PORT=3000`. `WEBSITE_DIR` and `DASHBOARD_DIR` point at folders that do not exist: the website
+    and the portals are not in this repository, and `apps/api/src/http/app.ts` checks that each folder exists before
+    serving it;
+  - waits for `/api/health` and checks that `/api/public/config` offers the open preview for the member workspace;
+  - installs Maestro 2.12.1 from the release's `maestro.zip` (the file the official install script fetches), checked
+    against its SHA-256;
+  - boots API level 36 (the app's targetSdk), `google_apis`, `x86_64`, with animations off, through
+    reactivecircus/android-emulator-runner, which runs `.github/scripts/e2e-android-run.sh`: install the APK, then
+    `maestro test apps/mobile/.maestro --format junit`, then keep the app's logcat lines.
+- **Network:** the emulator reaches the runner's `127.0.0.1:3000` at `http://10.0.2.2:3000`. The app may use plain
+  http there because a build with server override on keeps cleartext traffic on (`app/build.gradle`).
+- **Tablet layout:** Android 16 does not apply an app's portrait lock on large screens for apps that target API 36,
+  so the tablet run may show the app in landscape.
+- **The flows:** each starts from a cleared app. `smoke.yaml`: when the card "Continue without signing in" does not
+  appear (no server built in), Change the server address (testers) > `http://10.0.2.2:3000` > Back to sign-in; then
+  Continue without signing in; Home. `tabs.yaml`: the nine tabs of the pill in order, one check and one screenshot
+  each. `member-sign-in.yaml`: the seeded member signs in, opens Profile and signs out from Profile > Settings.
+  `subflows/` holds the shared steps and is not run on its own. Every flow names the source file of each selector.
+- **Credentials:** the member sign-in uses public demo seed values (`apps/api/src/seed/seed.ts`). That flow always sets
+  the server to `http://10.0.2.2:3000` first, so they only reach the job's own scratch API. The seed summary, which
+  lists the demo accounts, is not uploaded.
+- **Artifacts:** `e2e-android-<phone|tablet>-<run number>`, kept for 14 days and uploaded even when a flow fails:
+  `maestro/takeScreenshot/*.png` (the screenshots), the rest of `maestro/` (Maestro's command log and its own captures
+  of a failing step), `junit.xml`, `api.log`, `logcat.txt` and `device.txt`. The job summary lists each flow's result.
+- **Not yet run:** the flows were written from the app's sources. Maestro is not installed on the Mac and no emulator
+  run has been made, so the first CI run is the first time they meet the app.
+- **To update Maestro:** change `MAESTRO_VERSION` and `MAESTRO_SHA256` together. The hash is the `digest` GitHub
+  lists for `maestro.zip` at `https://api.github.com/repos/mobile-dev-inc/maestro/releases/tags/cli-<version>`.
+
+## workflow-lint.yml: zizmor
+
+This workflow audits the workflows and the local action with zizmor's default audits.
+- **When it runs:** on every push and pull request that changes `.github/**`, and by hand.
+- **Install:** zizmor 1.32.0 from PyPI, into a throwaway virtual environment. pip takes only the
+  `manylinux_2_28_x86_64` wheel and checks it against the SHA-256 in the workflow (`--require-hashes`). No
+  third-party action is used.
+- **Run:** `zizmor --format=github --config .github/zizmor.yml .`. It collects `.github/workflows/*.yml` and
+  `.github/actions/*/action.yml`. Findings appear as annotations (GitHub shows at most 10 per step; the log has all of
+  them), and any finding fails the job.
+- **Online audits:** the job's read-only token is passed as `GH_TOKEN`. This turns on the audits that ask the GitHub API
+  (impostor commits, known-vulnerable actions, version comments that do not match the pinned SHA).
+- **Configuration:** `.github/zizmor.yml` keeps one deliberate exception. Since 1.20, zizmor wants every action pinned
+  by SHA; the file lets `actions/*` stay on its major tags (the convention above) and requires a SHA for everything
+  else.
+- **Hardening (15 Nov 2026):** the existing workflows already checked out without keeping the token, had
+  `contents: read` at workflow level, used no `pull_request_target` and wrote no `${{ }}` into scripts. gradle/actions
+  moved from `@v6` to its v6.4.1 commit, and the Android build moved into the local action, which is called as
+  `./.github/actions/android-release-apk`. zizmor itself has not been run on the Mac: its first run is in CI.
+- **To update zizmor:** change `ZIZMOR_VERSION` and `ZIZMOR_SHA256` together. The hash is the sha256 of
+  `zizmor-<version>-py3-none-manylinux_2_28_x86_64.whl` at `https://pypi.org/pypi/zizmor/<version>/json`.
 
 ## Before the first push
 

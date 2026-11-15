@@ -1,0 +1,125 @@
+# Visits the nine tabs of the floating pill in the bar's order (src/fx/nav/tabs.ts TABS) through the open preview,
+# checks one element that only that page draws, and takes a screenshot of each.
+# Run by .github/workflows/e2e-android.yml; see .github/CI.md.
+# The pager hides the pages that are not in front from accessibility services (src/fx/nav/Pager.tsx), so the check
+# for a page only passes while that page is in front. Each check, and where it comes from:
+#   Home     id "home"        testID of Home's TabScreen (src/screens/home/HomeScreen.tsx)
+#   Train    id "train"       testID of Train's TabScreen (src/screens/train/TrainScreen.tsx)
+#   Bio      header subtitle  "What you, your coach or a connected device logged" (src/screens/bio/BioScreen.tsx)
+#   Life     header title     "Longevity" (src/screens/life/LifeScreen.tsx)
+#   Fuel     id "fuel"        testID of Fuel's TabScreen (src/screens/fuel/FuelScreen.tsx)
+#   Coach    the coach header's label "<name>, your coach, <status>" or its line "Your coach · <status>"
+#            (src/screens/coach/CoachHeader.tsx), or "Box Breathing" (src/screens/coach/BreathingCard.tsx), which the
+#            pages without a coach show (NoCoach.tsx, CoachScreen.tsx CoachUnavailable)
+#   Tests    header title     "Clinic" (src/screens/tests/TestsScreen.tsx)
+#   Store    id "store"       testID of Store's TabScreen (src/screens/store/StoreScreen.tsx)
+#   Profile  id "profile"     testID of Profile's TabScreen (src/app/(tabs)/profile.tsx)
+appId: com.bioptime.app
+name: Tabs - every tab of the pill
+tags:
+  - tabs
+---
+- runFlow: subflows/open-preview.yaml
+- assertVisible:
+    id: "home"
+- takeScreenshot: tabs-1-home
+
+- runFlow:
+    file: subflows/select-tab.yaml
+    env:
+      LABEL: "Train"
+      FROM: "Home"
+- extendedWaitUntil:
+    visible:
+      id: "train"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: tabs-2-train
+
+- runFlow:
+    file: subflows/select-tab.yaml
+    env:
+      LABEL: "Bio"
+      FROM: "Train"
+- extendedWaitUntil:
+    visible: "What you, your coach or a connected device logged"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: tabs-3-bio
+
+- runFlow:
+    file: subflows/select-tab.yaml
+    env:
+      LABEL: "Life"
+      FROM: "Bio"
+- extendedWaitUntil:
+    visible: "Longevity"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: tabs-4-life
+
+- runFlow:
+    file: subflows/select-tab.yaml
+    env:
+      LABEL: "Fuel"
+      FROM: "Life"
+- extendedWaitUntil:
+    visible:
+      id: "fuel"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: tabs-5-fuel
+
+- runFlow:
+    file: subflows/select-tab.yaml
+    env:
+      LABEL: "Coach(, new messages)?"
+      FROM: "Fuel"
+- extendedWaitUntil:
+    visible: ".*, your coach, .*|Your coach · .*|Box Breathing"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: tabs-6-coach
+
+- runFlow:
+    file: subflows/select-tab.yaml
+    env:
+      LABEL: "Tests"
+      FROM: "Coach(, new messages)?"
+- extendedWaitUntil:
+    visible: "Clinic"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: tabs-7-tests
+
+- runFlow:
+    file: subflows/select-tab.yaml
+    env:
+      LABEL: "Store"
+      FROM: "Tests"
+- extendedWaitUntil:
+    visible:
+      id: "store"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: tabs-8-store
+
+- runFlow:
+    file: subflows/select-tab.yaml
+    env:
+      LABEL: "Profile"
+      FROM: "Store"
+- extendedWaitUntil:
+    visible:
+      id: "profile"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: tabs-9-profile
