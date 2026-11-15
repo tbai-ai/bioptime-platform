@@ -11,8 +11,25 @@ appId: com.bioptime.app
 ---
 - launchApp:
     clearState: true
+# A CI emulator's own launcher sometimes stops answering while the app starts, and Android then covers the app with
+# "Pixel Launcher isn't responding" (seen on the phone run of 15 Nov). That is the emulator, not the app: tap "Wait"
+# whenever such a dialog shows, and keep waiting for the sign-in (up to 12 x 10 s).
+- repeat:
+    times: 12
+    while:
+      notVisible: "Sign in|Continue without signing in|Email|Change the server address.*"
+    commands:
+      - runFlow:
+          when:
+            visible: ".*isn't responding.*"
+          commands:
+            - tapOn: "Wait"
+      - extendedWaitUntil:
+          visible: "Sign in|Continue without signing in|Email|Change the server address.*"
+          timeout: 10000
+          optional: true
 - extendedWaitUntil:
     visible: "Sign in|Continue without signing in|Email|Change the server address.*"
-    timeout: 120000
+    timeout: 10000
 - waitForAnimationToEnd:
     timeout: 5000

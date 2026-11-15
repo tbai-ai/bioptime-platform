@@ -28,6 +28,12 @@ adb wait-for-device
 # a throwaway emulator: no autofill service, so no "save password?" dialog can cover the app after the sign-in flow
 adb shell settings put secure autofill_service null || true
 
+# a CI emulator's system apps (the launcher above all) sometimes stop answering under load, and Android then covers the
+# app with an "isn't responding" dialog that hides it from Maestro: hide those dialogs and close any already open
+adb shell settings put global hide_error_dialogs 1 || true
+adb shell settings put global anr_show_background 0 || true
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
+
 adb install -r -g "${apks[0]}"
 
 if ! curl -fsS --max-time 5 http://127.0.0.1:3000/api/health > /dev/null; then
