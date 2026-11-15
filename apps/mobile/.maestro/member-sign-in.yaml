@@ -1,8 +1,9 @@
 # A seeded member signs in with email and password, opens Profile, and signs out from Profile > Settings.
 # Run by .github/workflows/e2e-android.yml; see .github/CI.md.
 # The account is a public demo seed value (apps/api/src/seed/seed.ts: MEMBERS[0] and DEMO_PASSWORDS.member), and the
-# flow always points the app at http://10.0.2.2:3000 first (subflows/set-server.yaml), so those values only ever go
-# to the scratch demo API the CI job starts itself, never to a server built into the APK.
+# flow only signs in against the scratch demo API of the run: the one built into the e2e APK, or SERVER_URL
+# (subflows/set-server.yaml; default http://10.0.2.2:3000, the API the CI job starts itself). A local run on the Mac,
+# where :3000 is the live demo, passes its scratch API: `maestro test -e SERVER_URL=http://10.0.2.2:3975 ...`.
 # Selectors:
 #   - "Email", "Password": the inputs' accessibility labels (src/app/(auth)/sign-in.tsx Field label="Email" /
 #     label="Password"; src/fx/Field.tsx gives an input its Field's label)
@@ -24,8 +25,9 @@ env:
   MEMBER_NAME: "Ananya Rao"
 ---
 - runFlow: subflows/launch-signed-out.yaml
-# The e2e APK has the CI API (http://10.0.2.2:3000) built in, and only that API offers the open preview: when the card
-# shows, the app is already talking to it. Otherwise point it there first, so the seed password only reaches the CI API.
+# The e2e APK has the run's scratch API built in (CI: http://10.0.2.2:3000; the Mac's local build: http://10.0.2.2:3975),
+# and that API offers the open preview: when the card shows, the app is already talking to it. Otherwise point it at
+# SERVER_URL first (default http://10.0.2.2:3000, the CI API), so the seed password only reaches the scratch API.
 - extendedWaitUntil:
     visible: "Continue without signing in"
     timeout: 15000

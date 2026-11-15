@@ -1,5 +1,6 @@
 # Smoke: a cleared app reaches Home through the open preview (setting the server first when none is built in) and
 # Home draws its page, its header and the pill. Run by .github/workflows/e2e-android.yml; see .github/CI.md.
+# The server, when one is typed, is SERVER_URL (subflows/set-server.yaml; default http://10.0.2.2:3000, the CI API).
 # Selectors are listed in subflows/open-preview.yaml.
 appId: com.bioptime.app
 name: Smoke - open preview to Home

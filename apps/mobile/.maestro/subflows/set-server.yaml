@@ -1,5 +1,9 @@
-# From the client sign-in: opens the testers' Server screen, points the app at http://10.0.2.2:3000 (the Android
-# emulator's address for its host, where e2e-android.yml runs the demo API) and goes back to the sign-in.
+# From the client sign-in: opens the testers' Server screen, points the app at SERVER_URL and goes back to the sign-in.
+#   SERVER_URL: the address typed under Server. Default http://10.0.2.2:3000, the Android emulator's address for its
+#               host, where e2e-android.yml runs the demo API (CI passes nothing, so CI always uses that default).
+#               On a machine where :3000 is something else (the Mac's live demo), pass the scratch API instead, e.g.
+#               `maestro test -e SERVER_URL=http://10.0.2.2:3975 ...`. Maestro reads an undefined variable as
+#               undefined, so `${SERVER_URL || '...'}` falls back to the default when -e SERVER_URL is not given.
 # Selectors:
 #   - "Change the server address (testers)": src/app/(auth)/sign-in.tsx, the footer Link (a regex here, since the
 #     brackets are regex syntax)
@@ -9,6 +13,8 @@
 #     title the accessibility label)
 #   - "Now using ...": the notice useServerForm().apply shows once the address answered (src/app/settings/server.tsx)
 appId: com.bioptime.app
+env:
+  SERVER_URL: "${SERVER_URL || 'http://10.0.2.2:3000'}"
 ---
 - scrollUntilVisible:
     element:
@@ -32,7 +38,7 @@ appId: com.bioptime.app
 - tapOn: "Address"
 # a build with a server built in shows that address in the field
 - eraseText: 200
-- inputText: "http://10.0.2.2:3000"
+- inputText: "${SERVER_URL}"
 # Enter blurs the one-line input (it has no onSubmitEditing), which also puts the keyboard away
 - pressKey: Enter
 - scrollUntilVisible:

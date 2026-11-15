@@ -1,6 +1,7 @@
 # Visits the nine tabs of the floating pill in the bar's order (src/fx/nav/tabs.ts TABS) through the open preview,
 # checks one element that only that page draws, and takes a screenshot of each.
 # Run by .github/workflows/e2e-android.yml; see .github/CI.md.
+# The server, when one is typed, is SERVER_URL (subflows/set-server.yaml; default http://10.0.2.2:3000, the CI API).
 # The pager hides the pages that are not in front from accessibility services (src/fx/nav/Pager.tsx), so the check
 # for a page only passes while that page is in front. Each check, and where it comes from:
 #   Home     id "home"        testID of Home's TabScreen (src/screens/home/HomeScreen.tsx)

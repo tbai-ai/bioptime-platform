@@ -210,3 +210,9 @@ half resolution). One tablet run passed every flow, so the flows themselves work
 (glass, glow, photographs, motion). For a dependable run use an emulator on a machine with a GPU (for example this
 project's Mac), a GPU runner, or a device cloud. The job ends within minutes when the emulator goes away (attempts.txt
 in the artifact says which flows ran).
+
+Local run (15 Nov 2026, this project's Mac, real GPU and also software graphics): all flows passed on a Pixel 7 and a
+Pixel Tablet emulator, memory stayed level across 3 rounds of the 9 tabs, and the emulator never exited, so the CI
+failures most likely come from the hosted runner, not the app. To run the flows locally against a scratch API (never
+the Mac's live demo on :3000): `maestro --device emulator-<port> test -e SERVER_URL=http://10.0.2.2:<scratch port>
+apps/mobile/.maestro/<flow>.yaml`.

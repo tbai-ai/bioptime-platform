@@ -1,8 +1,9 @@
 # From a cold, cleared start to Home through the open preview ("Continue without signing in": one POST
 # /auth/open-preview for the member workspace, no password), the way a tester without an account goes in.
 # The app only offers the preview while its server does (GET /api/public/config -> openPreview; the API runs with
-# OPEN_PREVIEW=1). A build with no server built in (the CI build: no EXPO_PUBLIC_API_BASE) offers nothing until an
-# address is typed under Server, so the server is set first when the card has not appeared.
+# OPEN_PREVIEW=1). A build with no server built in (no EXPO_PUBLIC_API_BASE) offers nothing until an address is typed
+# under Server, so the server is set first when the card has not appeared: SERVER_URL (set-server.yaml; default
+# http://10.0.2.2:3000, the CI API; a local run on the Mac passes -e SERVER_URL=http://10.0.2.2:3975).
 # Selectors:
 #   - "Continue without signing in": the preview card's button title (src/flow/auth/PreviewCard.tsx; src/fx/Button.tsx
 #     makes the title the accessibility label)
