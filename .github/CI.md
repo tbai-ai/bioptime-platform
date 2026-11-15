@@ -200,3 +200,13 @@ This workflow audits the workflows and the local action with zizmor's default au
 - The root `.env.example` must be committed, because an API test checks it.
 - Never commit `debug.keystore`, an upload key, `apps/mobile/.env`, or the files of a local preview or
   link-sharing setup (tunnel, gate or relay settings).
+
+## Known limit: the Android emulator tests (e2e-android.yml)
+
+The Maestro flows run only when started by hand (Actions > E2E Android > Run workflow). On GitHub's hosted Linux
+runners there is no GPU, so the emulator draws in software, and on 15 Nov 2026 the emulator process exited within
+seconds of the app drawing Home in 4 of 5 runs (phone and tablet, API 36 and 35, software Vulkan and OpenGL, full and
+half resolution). One tablet run passed every flow, so the flows themselves work. The app's Home is its heaviest screen
+(glass, glow, photographs, motion). For a dependable run use an emulator on a machine with a GPU (for example this
+project's Mac), a GPU runner, or a device cloud. The job ends within minutes when the emulator goes away (attempts.txt
+in the artifact says which flows ran).

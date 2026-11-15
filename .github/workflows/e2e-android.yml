@@ -1,5 +1,5 @@
 # End-to-end tests of the client app on Android emulators, with Maestro (flows in apps/mobile/.maestro). See .github/CI.md.
-# One job builds an x86_64 release APK with no server built in; then a phone and a tablet emulator each run every flow
+# One job builds an x86_64 release APK with the CI API (http://10.0.2.2:3000) built in; then a phone and a tablet emulator each run every flow
 # against a scratch demo API that the same job starts on the runner (fresh database, synthetic seed data, simulated
 # payments, stand-in laboratory). The emulator reaches it at http://10.0.2.2:3000.
 # This repository is public: the logs and artifacts (screenshots, JUnit report, API log) are public too. Nothing private
@@ -7,18 +7,12 @@
 # apps/api/src/seed/seed.ts and only ever goes to that scratch API.
 name: E2E Android
 
+# Manual only (Actions > E2E Android > Run workflow). On GitHub's hosted runners, which have no GPU, the emulator
+# process itself exits within seconds of the app drawing Home after a sign-in or the open preview (5 runs on
+# 15 Nov 2026: 'Device server died during viewHierarchy', then 'device not found' and 'Connection refused' on the
+# emulator port), with software Vulkan or OpenGL alike, at full or half resolution. One tablet run passed all three
+# flows. Run it on a machine with a GPU (a local emulator, a GPU runner or a device cloud) for a dependable result.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/mobile/**'
-      - 'apps/api/**'
-      # the API's own packages (packages/domain) and the workspace lockfile
-      - 'packages/**'
-      - 'package-lock.json'
-      - '.github/workflows/e2e-android.yml'
-      - '.github/actions/android-release-apk/**'
-      - '.github/scripts/e2e-android-run.sh'
   workflow_dispatch:
 
 permissions:
