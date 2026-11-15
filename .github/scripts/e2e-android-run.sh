@@ -25,6 +25,17 @@ adb wait-for-device
   adb shell wm density | tr -d '\r'
 } | tee "$E2E_OUT/device.txt"
 
+# The runner has no GPU, so the emulator draws in software (SwiftShader), and at full resolution this app's glass, glow
+# and motion starve it: Maestro's on-device driver timed out reading the screen ("Device server died during
+# 'viewHierarchy'") on 3 of 4 device runs. Halve the pixels and the density together: the size in dp, and so the
+# phone/tablet layout, stays the same, while the drawing work drops about four times.
+size=$(adb shell wm size | tr -d '\r' | awk '/Physical size/ {print $3}')
+density=$(adb shell wm density | tr -d '\r' | awk '/Physical density/ {print $3}')
+w=${size%x*}; h=${size#*x}
+adb shell wm size "$((w / 2))x$((h / 2))"
+adb shell wm density "$((density / 2))"
+echo "display for the flows: $((w / 2))x$((h / 2)) at density $((density / 2)) (same dp size as ${size} at ${density})" | tee -a "$E2E_OUT/device.txt"
+
 # a throwaway emulator: no autofill service, so no "save password?" dialog can cover the app after the sign-in flow
 adb shell settings put secure autofill_service null || true
 
@@ -43,11 +54,52 @@ fi
 
 "$E2E_MAESTRO" --version
 status=0
-# a hard limit: on the first run the emulator died and Maestro never exited, so the job hung until its own timeout
-timeout --signal=TERM --kill-after=60 40m "$E2E_MAESTRO" test apps/mobile/.maestro \
-  --format junit \
-  --output "$E2E_OUT/junit.xml" \
-  --test-output-dir "$E2E_OUT/maestro" || status=$?
+# One flow per Maestro run, each with one retry: when the on-device driver dies, the flows after it no longer fail
+# with it ("Unknown error" in 20 ms), and a flow that hit a slow moment on the emulator gets a second chance. Each run
+# has a hard limit (on the first CI run Maestro never exited after the emulator died, and the job hung for 75 minutes).
+shopt -s nullglob
+flows=(apps/mobile/.maestro/*.yaml)
+: > "$E2E_OUT/attempts.txt"
+for flow in "${flows[@]}"; do
+  name=$(basename "$flow" .yaml)
+  passed=0
+  for attempt in 1 2; do
+    if timeout --signal=TERM --kill-after=60 10m "$E2E_MAESTRO" test "$flow" \
+        --format junit \
+        --output "$E2E_OUT/junit-$name.xml" \
+        --test-output-dir "$E2E_OUT/maestro/$name-try$attempt"; then
+      passed=1
+      echo "$name: passed on try $attempt" | tee -a "$E2E_OUT/attempts.txt"
+      break
+    fi
+    echo "$name: failed on try $attempt" | tee -a "$E2E_OUT/attempts.txt"
+    # let the emulator settle and make sure it is still there before the retry
+    sleep 15
+    adb wait-for-device
+  done
+  [ "$passed" = 1 ] || status=1
+done
+
+# one JUnit report for the summary step: the last try of each flow
+python3 - "$E2E_OUT" <<'PY'
+import glob, os, sys
+import xml.etree.ElementTree as ET
+out = sys.argv[1]
+suite = ET.Element("testsuite", name="Bioptime e2e")
+for path in sorted(glob.glob(os.path.join(out, "junit-*.xml"))):
+    try:
+        root = ET.parse(path).getroot()
+    except ET.ParseError:
+        continue
+    for case in root.iter("testcase"):
+        suite.append(case)
+cases = suite.findall("testcase")
+suite.set("tests", str(len(cases)))
+suite.set("failures", str(sum(1 for c in cases if c.find("failure") is not None)))
+tree = ET.ElementTree(ET.Element("testsuites"))
+tree.getroot().append(suite)
+tree.write(os.path.join(out, "junit.xml"), encoding="utf-8", xml_declaration=True)
+PY
 
 # the app's JavaScript log and crashes, for a failed run (a demo app against a scratch server: nothing private)
 timeout 60 adb logcat -d -v time 'ReactNativeJS:V' 'ReactNative:V' 'AndroidRuntime:E' '*:S' > "$E2E_OUT/logcat.txt" 2>&1 || true
