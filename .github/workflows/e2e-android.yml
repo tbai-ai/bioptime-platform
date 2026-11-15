@@ -183,6 +183,8 @@ jobs:
       # API level 35: the API 36 image overloaded the runner (Maestro's on-device driver died while reading the screen on
       # the first run). The app (minSdk 24, targetSdk 36) runs the same on 35, and 35 also keeps the tablet's portrait
       # lock. google_apis x86_64 runs natively under KVM. Animations off (the app's reduced-motion path).
+      # -feature -Vulkan: with no GPU the emulator's software Vulkan froze the device whenever the app's Home loaded
+      # (runs 1-4: 'Device server died', then the device went offline); Android then draws through OpenGL instead.
       - name: Run the flows on the ${{ matrix.device }} emulator
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
@@ -198,7 +200,7 @@ jobs:
           ram-size: 4096M
           disk-size: 6000M
           emulator-boot-timeout: 900
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           disable-spellchecker: true
           # the action runs each line of `script` on its own, so the steps are in one script file

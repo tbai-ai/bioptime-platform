@@ -73,9 +73,14 @@ for flow in "${flows[@]}"; do
       break
     fi
     echo "$name: failed on try $attempt" | tee -a "$E2E_OUT/attempts.txt"
-    # let the emulator settle and make sure it is still there before the retry
+    # let the emulator settle; if it is gone (offline or frozen), stop here instead of waiting for it forever
     sleep 15
-    adb wait-for-device
+    if ! timeout 120 adb wait-for-device || ! timeout 30 adb shell true > /dev/null 2>&1; then
+      echo "::error::the emulator stopped answering after '$name' failed; the remaining flows were not run"
+      echo "$name: emulator gone after try $attempt; later flows not run" | tee -a "$E2E_OUT/attempts.txt"
+      status=1
+      break 2
+    fi
   done
   [ "$passed" = 1 ] || status=1
 done
